@@ -1,0 +1,6 @@
+# Sensitive local config and credentials
+.htaccess
+backend/wp-config.php
+backend/wp-config-sample - Copy.php
+keys/
+*.pem

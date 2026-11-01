@@ -1,0 +1,878 @@
+/* ------------------------------------------------------------------
+   VTech Core — admin UI
+   A clean, modern settings UI for the Header/Footer screens.
+------------------------------------------------------------------ */
+
+.vtech-wrap {
+	--vt-blue: #2d7cff;
+	--vt-purple: #7c5cff;
+	--vt-ink: #0f1535;
+	--vt-border: #e3e6f0;
+	--vt-bg: #f6f7fb;
+	--vt-muted: #6b7280;
+	max-width: 1040px;
+}
+
+/* Header banner */
+.vtech-head {
+	background: linear-gradient(120deg, var(--vt-ink), #1b2a6b);
+	color: #fff;
+	border-radius: 14px;
+	padding: 22px 26px;
+	margin: 16px 0 20px;
+	box-shadow: 0 10px 30px -16px rgba(45, 124, 255, .6);
+}
+.vtech-head h1 {
+	color: #fff;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+	font-size: 24px;
+	font-weight: 700;
+}
+.vtech-head h1 .dashicons { font-size: 26px; width: 26px; height: 26px; }
+.vtech-sub { margin: 6px 0 0; color: rgba(255, 255, 255, .75); font-size: 13.5px; }
+
+/* Dashboard cards */
+.vtech-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+.vtech-card {
+	display: block;
+	background: #fff;
+	border: 1px solid var(--vt-border);
+	border-radius: 14px;
+	padding: 22px;
+	text-decoration: none;
+	color: var(--vt-ink);
+	transition: transform .18s, box-shadow .18s, border-color .18s;
+}
+.vtech-card:hover {
+	transform: translateY(-3px);
+	border-color: var(--vt-blue);
+	box-shadow: 0 18px 40px -24px rgba(45, 124, 255, .7);
+}
+.vtech-card .dashicons { font-size: 30px; width: 30px; height: 30px; color: var(--vt-blue); }
+.vtech-card h2 { margin: 10px 0 4px; font-size: 17px; }
+.vtech-card p { margin: 0; color: var(--vt-muted); font-size: 13px; }
+.vtech-rest {
+	margin-top: 18px; padding: 12px 16px; background: #fff;
+	border: 1px dashed var(--vt-border); border-radius: 10px; font-size: 13px;
+}
+.vtech-rest code { background: var(--vt-bg); padding: 2px 8px; border-radius: 6px; }
+
+/* Panels */
+.vtech-panel {
+	background: #fff;
+	border: 1px solid var(--vt-border);
+	border-radius: 14px;
+	padding: 20px 22px;
+	margin-bottom: 18px;
+}
+.vtech-panel-title {
+	margin: 0 0 14px;
+	font-size: 15px;
+	font-weight: 700;
+	color: var(--vt-ink);
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--vt-border);
+}
+.vtech-hint { margin: -6px 0 14px; color: var(--vt-muted); font-size: 12.5px; }
+
+/* Grid helpers */
+.vtech-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.vtech-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 782px) {
+	.vtech-grid-2, .vtech-grid-3, .vtech-cards { grid-template-columns: 1fr; }
+}
+
+/* Fields */
+.vtech-field { display: flex; flex-direction: column; gap: 6px; }
+.vtech-label { font-size: 12px; font-weight: 600; color: var(--vt-ink); }
+.vtech-input {
+	width: 100%;
+	border: 1px solid var(--vt-border);
+	border-radius: 9px;
+	padding: 8px 11px;
+	font-size: 13.5px;
+	background: #fff;
+	transition: border-color .15s, box-shadow .15s;
+}
+.vtech-input:focus {
+	border-color: var(--vt-blue);
+	box-shadow: 0 0 0 3px rgba(45, 124, 255, .15);
+	outline: none;
+}
+.vtech-multi-select { min-width: 0; border: 0; padding: 0; }
+.vtech-multi-select .vtech-label { margin-bottom: 2px; }
+.vtech-multi-select-option {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin: 2px 8px 2px 0;
+	padding: 6px 9px;
+	border: 1px solid var(--vt-border);
+	border-radius: 7px;
+	background: #fff;
+	font-size: 12px;
+	cursor: pointer;
+}
+.vtech-multi-select-option input { margin: 0; }
+
+/* Media (logo) */
+.vtech-media-row { display: flex; align-items: center; gap: 14px; }
+.vtech-media-preview {
+	width: 72px; height: 72px; border-radius: 12px; overflow: hidden;
+	border: 1px solid var(--vt-border); background: var(--vt-bg);
+	display: grid; place-items: center; flex: 0 0 auto;
+}
+.vtech-media-preview img { width: 100%; height: 100%; object-fit: cover; }
+.vtech-media-empty { color: #c3c7d4; font-size: 28px; width: 28px; height: 28px; }
+.vtech-media-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.vtech-media:not(.has-image) .vtech-media-remove { display: none; }
+
+/* Repeater rows */
+.vtech-repeater-items { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+.vtech-repeater-items > .vtech-row { flex: 0 0 auto; }
+.vtech-row {
+	position: relative;
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	background: var(--vt-bg);
+	border: 1px solid var(--vt-border);
+	border-radius: 12px;
+	padding: 14px 44px 14px 14px;
+}
+.vtech-row-main { flex: 1 1 auto; }
+.vtech-drag {
+	cursor: grab; color: #9aa1b4; margin-top: 24px;
+	flex: 0 0 auto; user-select: none;
+}
+.vtech-drag:active { cursor: grabbing; }
+.vtech-remove {
+	position: absolute; top: 12px; right: 12px;
+	background: #fff; border: 1px solid var(--vt-border);
+	border-radius: 8px; width: 28px; height: 28px;
+	display: grid; place-items: center; cursor: pointer; color: #c0392b;
+	transition: background .15s, border-color .15s;
+	padding: 0; line-height: 1;
+}
+.vtech-remove:hover { background: #fdecea; border-color: #e9a69f; }
+.vtech-remove.dashicons { font-size: 16px; }
+
+/* Repeater rows keep their title visible while the editing fields are collapsed. */
+.vtech-row-collapsible { display: block; padding: 0; overflow: hidden; }
+.vtech-row-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-height: 54px;
+	padding: 10px 52px 10px 14px;
+	position: relative;
+}
+.vtech-row-collapsible.is-collapsed .vtech-row-head { padding-right: 52px; }
+.vtech-row-head .vtech-drag { margin-top: 0; }
+.vtech-row-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex: 1 1 auto;
+	min-width: 0;
+	border: 0;
+	padding: 0;
+	background: transparent;
+	color: var(--vt-ink);
+	text-align: left;
+	font: inherit;
+	font-weight: 700;
+	line-height: 1.4;
+	cursor: pointer;
+}
+.vtech-row-toggle:hover,
+.vtech-row-toggle:focus {
+	color: var(--vt-blue);
+	background: transparent;
+	box-shadow: none;
+}
+.vtech-row-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vtech-row-toggle > .dashicons { color: var(--vt-muted); transition: transform .18s ease; }
+.vtech-row-collapsible:not(.is-collapsed) .vtech-row-toggle > .dashicons { transform: rotate(180deg); }
+.vtech-row-collapsible .vtech-remove { top: 13px; right: 12px; }
+.vtech-row-body { padding: 0 14px 14px; border-top: 1px solid var(--vt-border); }
+.vtech-row-collapsible.is-collapsed .vtech-row-body { display: none; }
+.vtech-row-collapsible .vtech-row-main { padding-top: 14px; }
+
+/* Sub items (sub-menu / column links) */
+.vtech-sub-block {
+	margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--vt-border);
+}
+.vtech-sub-head {
+	display: flex; align-items: center; justify-content: space-between;
+	font-size: 12px; font-weight: 600; color: var(--vt-muted); margin-bottom: 8px;
+}
+.vtech-sub-items { display: flex; flex-direction: column; gap: 10px; }
+.vtech-subrow {
+	background: #fff; padding: 10px 44px 10px 12px;
+}
+
+/* Add buttons */
+.vtech-add { margin-top: 2px; }
+
+/* Icon picker control */
+.vtech-icon-control { display: flex; gap: 6px; align-items: center; }
+.vtech-icon-control .vtech-input { flex: 1 1 auto; }
+
+/* Icon picker modal */
+.vtech-modal-backdrop {
+	position: fixed; inset: 0; background: rgba(15, 21, 53, .55);
+	z-index: 100000; display: none; align-items: center; justify-content: center;
+}
+.vtech-modal-backdrop.open { display: flex; }
+.vtech-modal {
+	background: #fff; width: min(620px, 92vw); max-height: 80vh;
+	border-radius: 16px; overflow: hidden; display: flex; flex-direction: column;
+	box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .5);
+}
+.vtech-modal-head {
+	padding: 16px 18px; border-bottom: 1px solid var(--vt-border);
+	display: flex; gap: 12px; align-items: center;
+}
+.vtech-modal-head h3 { margin: 0; font-size: 15px; flex: 0 0 auto; }
+.vtech-modal-search {
+	flex: 1 1 auto; border: 1px solid var(--vt-border); border-radius: 9px;
+	padding: 7px 11px; font-size: 13px;
+}
+.vtech-modal-close {
+	border: none; background: none; cursor: pointer; font-size: 20px; color: var(--vt-muted);
+	line-height: 1;
+}
+.vtech-icon-grid {
+	padding: 16px; overflow-y: auto;
+	display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px;
+}
+.vtech-icon-opt {
+	border: 1px solid var(--vt-border); border-radius: 10px; background: #fff;
+	padding: 12px 6px 8px; cursor: pointer; text-align: center;
+	display: flex; flex-direction: column; align-items: center; gap: 6px;
+	transition: border-color .12s, background .12s, transform .12s;
+}
+.vtech-icon-opt:hover { border-color: var(--vt-blue); background: #f3f7ff; transform: translateY(-2px); }
+.vtech-icon-opt svg { width: 22px; height: 22px; stroke: var(--vt-ink); }
+.vtech-icon-opt span { font-size: 10.5px; color: var(--vt-muted); word-break: break-all; }
+
+/* ------------------------------------------------------------------
+   Page-builder additions: tabs, toggles, placement grid, groups
+------------------------------------------------------------------ */
+
+/* Section tabs */
+.vtech-tabs { margin: 18px 0 20px; border-bottom: 1px solid var(--vt-border); }
+.vtech-tabs .nav-tab { display: inline-flex; align-items: center; gap: 6px; border-radius: 10px 10px 0 0; }
+.vtech-tabs .nav-tab .dashicons { font-size: 16px; width: 16px; height: 16px; }
+.vtech-tabs .nav-tab-active { color: var(--vt-blue); border-bottom-color: #fff; }
+
+/* Full-width fields (textarea) span both grid columns */
+.vtech-field-full { grid-column: 1 / -1; }
+.vtech-field textarea.vtech-input { resize: vertical; min-height: 72px; font-family: inherit; }
+
+/* Nested group block */
+.vtech-group {
+	grid-column: 1 / -1;
+	border: 1px solid var(--vt-border);
+	border-radius: 12px;
+	padding: 14px;
+	background: #fcfcff;
+}
+.vtech-group-title { font-size: 12px; font-weight: 700; color: var(--vt-ink); margin-bottom: 10px; }
+.vtech-group-collapsible { padding: 0; overflow: hidden; }
+.vtech-group-toggle,
+.vtech-repeater-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	min-height: 48px;
+	border: 0;
+	padding: 12px 14px;
+	background: transparent;
+	color: var(--vt-ink);
+	text-align: left;
+	cursor: pointer;
+}
+.vtech-group-toggle .vtech-group-title { margin: 0; font-size: 13px; }
+.vtech-group-toggle > .dashicons,
+.vtech-repeater-toggle > .dashicons { color: var(--vt-muted); transition: transform .18s ease; }
+.vtech-group-collapsible:not(.is-collapsed) > .vtech-group-toggle > .dashicons,
+.vtech-repeater-panel:not(.is-collapsed) > .vtech-repeater-toggle > .dashicons { transform: rotate(180deg); }
+.vtech-group-body,
+.vtech-repeater-panel-body { padding: 0 14px 14px; }
+.vtech-group-collapsible.is-collapsed > .vtech-group-body,
+.vtech-repeater-panel.is-collapsed > .vtech-repeater-panel-body { display: none; }
+.vtech-repeater-panel { padding: 0; overflow: hidden; }
+.vtech-repeater-toggle .vtech-panel-title { margin: 0; }
+.vtech-admin-panel-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	border: 0;
+	padding: 0 0 12px;
+	margin: 0 0 12px;
+	border-bottom: 1px solid var(--vt-border);
+	background: transparent;
+	color: var(--vt-ink);
+	text-align: left;
+	cursor: pointer;
+}
+.vtech-panel-title-content { font-size: 15px; font-weight: 700; }
+.vtech-admin-panel-toggle > .dashicons { color: var(--vt-muted); transition: transform .18s ease; }
+.vtech-panel:not(.is-collapsed) > .vtech-admin-panel-toggle > .dashicons { transform: rotate(180deg); }
+.vtech-admin-panel-body[hidden] { display: none; }
+
+/* Sub-panel used by repeaters inside a schema */
+.vtech-sub-panel { grid-column: 1 / -1; margin-bottom: 0; background: #fcfcff; }
+.vtech-sub-panel .vtech-panel-title { font-size: 13px; }
+
+/* Toggle switch */
+.vtech-toggle { flex-direction: row; align-items: center; justify-content: space-between; }
+.vtech-switch { position: relative; display: inline-block; width: 42px; height: 24px; flex: 0 0 auto; }
+.vtech-switch input[type="checkbox"] { position: absolute; opacity: 0; width: 42px; height: 24px; margin: 0; cursor: pointer; z-index: 2; }
+.vtech-slider {
+	position: absolute; inset: 0; background: #cfd4e4; border-radius: 999px;
+	transition: background .18s;
+}
+.vtech-slider::before {
+	content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+	background: #fff; border-radius: 50%; transition: transform .18s; box-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+.vtech-switch input:checked ~ .vtech-slider { background: var(--vt-blue); }
+.vtech-switch input:checked ~ .vtech-slider::before { transform: translateX(18px); }
+
+/* Placement grid */
+.vtech-placement { width: 100%; border-collapse: collapse; }
+.vtech-placement th, .vtech-placement td {
+	text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--vt-border); vertical-align: middle;
+}
+.vtech-placement th { font-size: 12px; color: var(--vt-muted); text-transform: uppercase; letter-spacing: .04em; }
+.vtech-placement code { background: var(--vt-bg); padding: 1px 6px; border-radius: 5px; font-size: 11px; }
+.vtech-order-input { width: 80px; }
+
+/* Page-first section ordering manager */
+.vtech-layout-intro {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	margin: 18px 0 12px;
+}
+.vtech-layout-intro h2 { margin: 0 0 4px; font-size: 18px; }
+.vtech-layout-intro p { margin: 0; color: var(--vt-muted); font-size: 13px; }
+.vtech-page-tabs { overflow-x: auto; white-space: nowrap; }
+.vtech-page-section-list {
+	display: flex;
+	flex-direction: column;
+	gap: 9px;
+	margin: 12px 0 18px;
+	padding: 0;
+	list-style: none;
+}
+.vtech-page-layout-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-height: 58px;
+	padding: 10px 14px;
+	background: #fff;
+	border: 1px solid var(--vt-border);
+	border-radius: 10px;
+}
+.vtech-hero-layout-row { margin: 16px 0 10px; background: #f3f7ff; border-color: #c9d9ff; }
+.vtech-page-section-row { cursor: default; }
+.vtech-page-section-drag { flex: 0 0 auto; color: #9aa1b4; cursor: grab; }
+.vtech-page-section-drag:active { cursor: grabbing; }
+.vtech-layout-icon { flex: 0 0 auto; color: var(--vt-blue); }
+.vtech-layout-name { display: flex; flex: 1 1 auto; flex-direction: column; gap: 3px; }
+.vtech-layout-name strong { color: var(--vt-ink); font-size: 13px; }
+.vtech-layout-name span { color: var(--vt-muted); font-size: 11px; }
+.vtech-layout-toggle { position: relative; display: inline-block; width: 42px; height: 24px; flex: 0 0 auto; }
+.vtech-layout-toggle input[type="checkbox"] { position: absolute; z-index: 2; width: 42px; height: 24px; margin: 0; opacity: 0; cursor: pointer; }
+.vtech-layout-toggle input:checked ~ .vtech-slider { background: var(--vt-blue); }
+.vtech-layout-toggle input:checked ~ .vtech-slider::before { transform: translateX(18px); }
+.vtech-page-layout-placeholder { border: 1px dashed var(--vt-blue); background: #edf4ff; }
+@media (max-width: 782px) {
+	.vtech-layout-intro { align-items: flex-start; flex-direction: column; }
+}
+
+/* Placed-sections summary list */
+.vtech-placed-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.vtech-placed-list li { display: flex; align-items: center; gap: 10px; background: var(--vt-bg); border: 1px solid var(--vt-border); border-radius: 10px; padding: 10px 12px; }
+.vtech-order {
+	display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px;
+	background: var(--vt-blue); color: #fff; font-size: 12px; font-weight: 700;
+}
+
+/* ------------------------------------------------------------------
+   Our Services: scrollable card list (many cards) + featured marker
+------------------------------------------------------------------ */
+
+/* Repeater list becomes scrollable once it holds more than 9 rows. */
+.vtech-repeater-items.vtech-scroll {
+	max-height: 480px;
+	overflow-y: auto;
+	padding-right: 6px;
+}
+
+/* Cards flagged as a "feature" get a subtle accent in the admin list. */
+.vtech-row.is-feature {
+	border-color: var(--vt-blue);
+	box-shadow: inset 3px 0 0 var(--vt-blue);
+}
+
+/* ------------------------------------------------------------------
+   Page screen: per-section blocks with an "Add to Feature" toggle
+------------------------------------------------------------------ */
+
+/* A section block turns blue when it is switched on for the page. */
+.vtech-section-block.is-on {
+	border-color: var(--vt-blue);
+	box-shadow: 0 0 0 1px rgba(45, 124, 255, .22), 0 14px 34px -24px rgba(45, 124, 255, .75);
+}
+
+.vtech-section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 14px;
+	flex-wrap: wrap;
+	border-bottom: 1px solid var(--vt-border);
+	padding-bottom: 12px;
+	margin-bottom: 12px;
+}
+.vtech-section-head .vtech-panel-title {
+	margin: 0;
+	padding: 0 0 0 4px;
+	border: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+.vtech-section-head .vtech-panel-title .dashicons { color: var(--vt-blue); }
+
+.vtech-section-tools { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.vtech-order-field { flex-direction: row; align-items: center; gap: 8px; }
+.vtech-feature-toggle { flex-direction: row; align-items: center; gap: 10px; }
+.vtech-feature-toggle .vtech-label { color: var(--vt-blue); font-weight: 700; }
+
+/* Collapse / expand arrow on a section panel. */
+.vtech-collapse {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	padding: 0;
+	border: 1px solid var(--vt-border);
+	border-radius: 8px;
+	background: transparent;
+	color: var(--vt-muted);
+	cursor: pointer;
+	transition: color .15s ease, border-color .15s ease, background .15s ease;
+}
+.vtech-collapse:hover {
+	color: var(--vt-blue);
+	border-color: var(--vt-blue);
+	background: rgba(45, 124, 255, .08);
+}
+.vtech-collapse .dashicons { width: 18px; height: 18px; line-height: 18px; }
+/* Point down when open, right when collapsed. */
+.vtech-section-block.is-open > .vtech-section-head .vtech-collapse .dashicons { transform: rotate(180deg); }
+.vtech-collapse .dashicons { transition: transform .18s ease; }
+
+/* Body is hidden until the panel is opened. */
+.vtech-collapse-body { display: none; }
+.vtech-section-block.is-open > .vtech-collapse-body { display: block; }
+
+/* The whole header is clickable to collapse/expand. */
+.vtech-section-head {
+	cursor: pointer;
+	user-select: none;
+	border-radius: 10px;
+	margin: -6px -8px 12px;
+	padding: 10px 8px 12px;
+	transition: background .15s ease;
+}
+.vtech-section-head:hover { background: var(--vt-bg); }
+.vtech-section-tools .vtech-order-field,
+.vtech-section-tools input,
+.vtech-section-tools label { pointer-events: auto; }
+
+/* Numbered badge so sections are easy to scan. */
+.vtech-panel-title .vtech-count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 22px;
+	height: 22px;
+	padding: 0 7px;
+	border-radius: 11px;
+	background: var(--vt-blue);
+	color: #fff;
+	font-size: 11.5px;
+	font-weight: 700;
+}
+
+/* Toolbar above the section list. */
+.vtech-listbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+	background: #fff;
+	border: 1px solid var(--vt-border);
+	border-radius: 12px;
+	padding: 12px 16px;
+	margin-bottom: 16px;
+}
+.vtech-listbar span { font-size: 13px; color: var(--vt-muted); }
+.vtech-listbar-actions { display: flex; gap: 8px; }
+.vtech-listbar-actions .button { font-size: 12.5px !important; height: auto; }
+
+/* Delete link on a custom section tab. */
+.vtech-danger { color: #c0392b; }
+.vtech-tabs .nav-tab .dashicons.dashicons-block-default { color: var(--vt-muted); }
+
+/* ------------------------------------------------------------------
+   Page screen: "Add to Feature" reveal + Sections screen actions
+------------------------------------------------------------------ */
+
+/* The page/order picker only shows once a section is featured (is-on). */
+.vtech-feature-extra {
+	display: none;
+	margin-top: 18px;
+	padding-top: 16px;
+	border-top: 1px dashed var(--vt-border);
+}
+.vtech-section-block.is-on .vtech-feature-extra { display: block; }
+.vtech-feature-extra h3 {
+	margin: 0 0 10px;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--vt-ink);
+}
+
+/* Save + Delete row on the Sections screen. */
+.vtech-actions {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin-top: 4px;
+}
+.vtech-actions .button-link.vtech-danger { color: #c0392b; }
+
+/* Icon picker: inline SVG preview beside the input */
+.vtech-icon-preview {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 34px;
+	height: 34px;
+	border: 1px solid var(--vt-border);
+	border-radius: 8px;
+	background: var(--vt-bg);
+}
+.vtech-icon-preview svg {
+	width: 18px;
+	height: 18px;
+	stroke: var(--vt-blue);
+}
+
+
+/* Per-card "Add to Feature": clear highlighted strip inside each card */
+.vtech-row-main .vtech-toggle{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;margin-top:6px;background:#f0f6ff;border:1px solid #cfe0ff;border-radius:8px}
+.vtech-row-main .vtech-toggle .vtech-label{font-weight:600;margin:0}
+.vtech-row.is-feature>.vtech-row-head{border-left:3px solid #2d7cff}
+.vtech-row.is-feature .vtech-row-title::after{content:"\2605 Featured";margin-left:8px;font-size:11px;font-weight:600;color:#2d7cff;background:#e6f0ff;padding:2px 8px;border-radius:10px}
+
+/* ==================================================================
+   VTech Core — UI refinement pass (visual only, no markup changes)
+   Appended so later rules win: refines spacing, typography, inputs,
+   repeater rows, toggles, buttons and the editor for a cleaner,
+   more user-friendly admin across every section screen.
+================================================================== */
+
+.vtech-wrap {
+	--vt-blue: #2d7cff;
+	--vt-blue-ink: #1b5fd9;
+	--vt-purple: #7c5cff;
+	--vt-ink: #0f1535;
+	--vt-border: #e4e7f2;
+	--vt-border-soft: #eef0f8;
+	--vt-bg: #f5f6fb;
+	--vt-bg-soft: #fafbff;
+	--vt-muted: #6b7280;
+	--vt-radius: 14px;
+	--vt-radius-sm: 10px;
+	max-width: 1080px;
+}
+
+/* Softer page background behind the whole screen for better contrast. */
+.vtech-wrap { color: var(--vt-ink); }
+
+/* ---- Header banner: a touch more polish ---- */
+.vtech-head {
+	padding: 24px 28px;
+	border-radius: 16px;
+	box-shadow: 0 16px 40px -22px rgba(45, 124, 255, .65);
+}
+.vtech-head h1 { font-size: 23px; letter-spacing: -0.01em; }
+.vtech-sub { font-size: 13px; line-height: 1.55; max-width: 70ch; }
+
+/* ---- Panels: more generous, calmer spacing ---- */
+.vtech-panel {
+	padding: 22px 24px;
+	border-radius: var(--vt-radius);
+	box-shadow: 0 1px 2px rgba(15, 21, 53, .04);
+}
+.vtech-panel-title { font-size: 14.5px; letter-spacing: -0.01em; }
+
+/* ---- Grids: a little more air between fields ---- */
+.vtech-grid-2 { gap: 16px 18px; }
+.vtech-grid-3 { gap: 16px 18px; }
+
+/* ---- Fields: clearer labels and comfortable inputs ---- */
+.vtech-label {
+	font-size: 11.5px;
+	font-weight: 600;
+	letter-spacing: .02em;
+	text-transform: uppercase;
+	color: #4b5168;
+}
+.vtech-input {
+	padding: 9px 12px;
+	border-radius: var(--vt-radius-sm);
+	font-size: 13.5px;
+	background: #fff;
+	box-shadow: 0 1px 1px rgba(15, 21, 53, .02);
+}
+.vtech-input::placeholder { color: #aeb4c7; }
+.vtech-input:hover { border-color: #cbd2e6; }
+.vtech-input:focus { box-shadow: 0 0 0 3px rgba(45, 124, 255, .16); }
+.vtech-field textarea.vtech-input { min-height: 84px; line-height: 1.55; }
+
+/* ---- Multi-select chips: pill-style, highlight when checked ---- */
+.vtech-multi-select { display: flex; flex-direction: column; gap: 8px; }
+.vtech-multi-select-option {
+	border-radius: 999px;
+	padding: 6px 12px;
+	font-size: 12px;
+	color: #3b4256;
+	transition: border-color .12s, background .12s, color .12s;
+}
+.vtech-multi-select-option:hover { border-color: var(--vt-blue); color: var(--vt-blue-ink); }
+.vtech-multi-select-option:has(input:checked) {
+	border-color: var(--vt-blue);
+	background: #eef4ff;
+	color: var(--vt-blue-ink);
+	font-weight: 600;
+}
+
+/* ---- Repeater rows: cleaner cards, nicer collapsed header ---- */
+.vtech-row {
+	border-radius: var(--vt-radius-sm);
+	background: var(--vt-bg-soft);
+	transition: border-color .15s, box-shadow .15s;
+}
+.vtech-row:hover { border-color: #d4dbf0; }
+.vtech-row-collapsible.is-collapsed:hover .vtech-row-head { background: #f3f6ff; }
+.vtech-row-head { border-radius: var(--vt-radius-sm); transition: background .15s; }
+.vtech-row-title { font-size: 13.5px; letter-spacing: -0.01em; }
+.vtech-row-body { border-top-color: var(--vt-border-soft); }
+
+/* Delete button: calmer until hovered. */
+.vtech-remove { color: #b24a3f; border-color: var(--vt-border); }
+.vtech-remove:hover { background: #fdecea; border-color: #e9a69f; color: #c0392b; }
+
+/* ---- Sub-panels (nested repeaters): clearer container ---- */
+.vtech-sub-panel { background: var(--vt-bg-soft); border-radius: 12px; }
+.vtech-repeater-toggle:hover .vtech-panel-title,
+.vtech-group-toggle:hover .vtech-group-title { color: var(--vt-blue-ink); }
+.vtech-repeater-panel,
+.vtech-group-collapsible { transition: border-color .15s; }
+.vtech-repeater-panel:hover,
+.vtech-group-collapsible:hover { border-color: #d4dbf0; }
+
+/* ---- Add buttons: consistent, friendly ---- */
+.vtech-add.button-primary {
+	border-radius: 9px;
+	padding: 4px 16px;
+	height: auto;
+	min-height: 34px;
+	font-weight: 600;
+	box-shadow: 0 6px 16px -10px rgba(45, 124, 255, .9);
+}
+
+/* ---- Toggle switch: slightly larger hit area, smoother ---- */
+.vtech-switch,
+.vtech-layout-toggle { width: 44px; height: 25px; }
+.vtech-switch input,
+.vtech-layout-toggle input { width: 44px; height: 25px; }
+.vtech-slider::before { width: 19px; height: 19px; }
+.vtech-switch input:checked ~ .vtech-slider::before,
+.vtech-layout-toggle input:checked ~ .vtech-slider::before { transform: translateX(19px); }
+.vtech-slider { box-shadow: inset 0 0 0 1px rgba(15,21,53,.04); }
+
+/* ---- Section blocks (page screen): clearer open/closed states ---- */
+.vtech-section-block {
+	border-radius: var(--vt-radius);
+	transition: border-color .15s, box-shadow .15s;
+}
+.vtech-section-head .vtech-panel-title { font-size: 15px; letter-spacing: -0.01em; }
+.vtech-section-head:hover { background: #f1f5ff; }
+
+/* ---- Numbered badge: a touch bigger for scanability ---- */
+.vtech-panel-title .vtech-count {
+	min-width: 24px; height: 24px; font-size: 12px;
+	box-shadow: 0 4px 10px -5px rgba(45, 124, 255, .9);
+}
+
+/* ---- Toolbar above the section list ---- */
+.vtech-listbar { border-radius: var(--vt-radius); }
+.vtech-listbar-actions .button {
+	border-radius: 8px;
+	font-weight: 600;
+}
+
+/* ---- Page layout manager rows: clearer, draggable feel ---- */
+.vtech-page-layout-row {
+	border-radius: var(--vt-radius-sm);
+	transition: border-color .15s, box-shadow .15s, transform .12s;
+}
+.vtech-page-section-row:hover {
+	border-color: #cbd6f5;
+	box-shadow: 0 10px 24px -20px rgba(45, 124, 255, .8);
+}
+.vtech-layout-name strong { font-size: 13.5px; }
+
+/* ---- Rich editor field: frame it like a proper input ---- */
+.vtech-rich-editor { gap: 8px; }
+.vtech-rich-editor .wp-editor-wrap,
+.vtech-rich-editor .wp-editor-container {
+	border-radius: var(--vt-radius-sm);
+}
+.vtech-rich-editor .wp-editor-container { border: 1px solid var(--vt-border); border-top: 0; }
+.vtech-rich-editor .wp-editor-tools { margin-bottom: 0; }
+.vtech-rich-editor .mce-toolbar-grp,
+.vtech-rich-editor .quicktags-toolbar { border-radius: var(--vt-radius-sm) var(--vt-radius-sm) 0 0; }
+.vtech-rich-editor .wp-editor-area {
+	border: 0;
+	line-height: 1.6;
+}
+/* The empty template textarea must never show up as a bare field. */
+.vtech-wp-editor-tmpl { display: none !important; }
+
+/* ---- Save button area: give primary actions room ---- */
+.vtech-form p.submit {
+	margin-top: 20px;
+	padding-top: 18px;
+	border-top: 1px solid var(--vt-border-soft);
+}
+.vtech-form p.submit .button-primary {
+	border-radius: 10px;
+	min-height: 40px;
+	padding: 4px 22px;
+	font-weight: 600;
+	box-shadow: 0 10px 24px -12px rgba(45, 124, 255, .95);
+}
+
+/* ---- Dashboard cards: subtle lift ---- */
+.vtech-card { border-radius: var(--vt-radius); }
+.vtech-card h2 { font-size: 16px; letter-spacing: -0.01em; }
+
+/* ---- Settings notices sit nicely inside our layout ---- */
+.vtech-wrap .notice { border-radius: var(--vt-radius-sm); }
+
+/* ---- Responsive: comfortable single column on small screens ---- */
+@media (max-width: 782px) {
+	.vtech-head { padding: 20px; }
+	.vtech-panel { padding: 18px; }
+	.vtech-section-tools { gap: 12px; }
+}
+
+/* ==================================================================
+   VTech Core — polish pass 2 (visual only)
+   Tightens repeater-field alignment (Highlights, Stats), pairs
+   label+link button fields, and makes every section screen read
+   consistently. No markup or behaviour changes.
+================================================================== */
+
+/* ---- Repeater row fields line up neatly in two columns ---- */
+.vtech-row-main.vtech-grid-2 { gap: 14px 18px; align-items: start; }
+
+/* Short "value/label/icon" style fields in Highlights/Stats repeaters
+   sit comfortably without stretching full width. */
+.vtech-row-main .vtech-field { min-width: 0; }
+
+/* ---- Icon control: align the picker row cleanly ---- */
+.vtech-icon-control { gap: 8px; }
+.vtech-icon-control .button { border-radius: 8px; }
+.vtech-icon-preview { width: 36px; height: 36px; border-radius: 9px; }
+
+/* ---- Media field inside content rows: consistent framing ---- */
+.vtech-media-preview { border-radius: 12px; }
+.vtech-media-actions .button { border-radius: 8px; }
+
+/* ---- Section screens: consistent heading rhythm across every panel ---- */
+.vtech-section-block + .vtech-section-block { margin-top: 16px; }
+.vtech-section-head .vtech-panel-title .dashicons {
+	font-size: 20px; width: 20px; height: 20px;
+}
+
+/* ---- Group blocks (e.g. hero/advanced) match panel styling ---- */
+.vtech-group { background: var(--vt-bg-soft); border-radius: 12px; }
+.vtech-group-title { letter-spacing: -0.01em; }
+
+/* ---- Paired button fields (Primary/Secondary label + link) read as a set.
+   These fields naturally fall next to each other in the 2-col grid; this
+   just makes the pairing feel intentional with a subtle grouping tint. ---- */
+.vtech-field:has(input[name$="[primary_label]"]),
+.vtech-field:has(input[name$="[primary_url]"]),
+.vtech-field:has(input[name$="[secondary_label]"]),
+.vtech-field:has(input[name$="[secondary_url]"]),
+.vtech-field:has(input[name$="[cta]"]),
+.vtech-field:has(input[name$="[cta_url]"]),
+.vtech-field:has(input[name$="[cta_text]"]) {
+	background: var(--vt-bg-soft);
+	border: 1px solid var(--vt-border-soft);
+	border-radius: var(--vt-radius-sm);
+	padding: 10px 12px;
+}
+
+/* ---- Highlights/Stats repeater: a tidy, scannable 3-up field layout ---- */
+.vtech-row-main.vtech-grid-2 > .vtech-field-full { grid-column: 1 / -1; }
+
+/* ---- Empty-state / hint text reads softer and consistent ---- */
+.vtech-hint, .vtech-sub-head { color: var(--vt-muted); }
+
+/* ---- Buttons everywhere: unified rounding + weight ---- */
+.vtech-wrap .button { border-radius: 8px; }
+.vtech-wrap .button-primary { font-weight: 600; }
+
+/* ---- Save bar: make the primary save stand out on every screen ---- */
+.vtech-form .submit .button-primary,
+.vtech-actions .button-primary {
+	min-height: 40px;
+	padding: 4px 24px;
+	border-radius: 10px;
+	box-shadow: 0 10px 24px -12px rgba(45, 124, 255, .95);
+}
+
+/* ---- Section tabs: clearer active state ---- */
+.vtech-tabs .nav-tab { font-weight: 600; }
+.vtech-tabs .nav-tab-active {
+	box-shadow: inset 0 -2px 0 var(--vt-blue);
+}
+
+/* ---- Consistent spacing above repeater "Add" buttons ---- */
+.vtech-repeater .vtech-add { margin-top: 6px; }
