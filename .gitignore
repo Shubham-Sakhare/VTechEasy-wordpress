@@ -4,5 +4,14 @@
 # Ignore keys folder
 /keys/
 
-# Ignore WordPress config file
+# Ignore WordPress config file (contains DB credentials and auth keys)
 /backend/wp-config.php
+
+# WordPress backend ignores
+/backend/.htaccess
+/backend/wp-content/uploads/
+/backend/wp-content/cache/
+/backend/wp-content/upgrade/
+/backend/wp-content/blogs.dir/
+/backend/*.log
+/backend/error_log
