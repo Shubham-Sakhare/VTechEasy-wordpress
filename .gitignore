@@ -1,6 +1,8 @@
-# Sensitive local config and credentials
-.htaccess
-backend/wp-config.php
-backend/wp-config-sample - Copy.php
-keys/
-*.pem
+# Ignore Frontend folder
+/Frontend/
+
+# Ignore keys folder
+/keys/
+
+# Ignore WordPress config file
+/backend/wp-config.php
