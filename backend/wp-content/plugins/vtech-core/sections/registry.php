@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Section registry definitions.
  *
@@ -145,7 +145,7 @@ function vtech_hero_defaults( $slug ) {
 	);
 
 	$per_page = array(
-		'home'      => array( 'eyebrow' => 'Innovative • Creative • Reliable', 'title' => 'We Build', 'accent' => 'Modern Websites & Powerful Apps', 'description' => 'Turn your ideas into digital solutions with our expert web and app development services.' ),
+		'home'      => array( 'eyebrow' => 'Innovative � Creative � Reliable', 'title' => 'We Build', 'accent' => 'Modern Websites & Powerful Apps', 'description' => 'Turn your ideas into digital solutions with our expert web and app development services.' ),
 		'about'     => array( 'eyebrow' => 'About Us', 'title' => 'Turning Ideas into', 'accent' => 'Digital Reality', 'description' => 'Tech Easy is a passionate team of developers, designers and digital experts.' ),
 		'portfolio' => array( 'eyebrow' => 'Our Portfolio', 'title' => 'Our Work Speaks', 'accent' => 'Better Than Words', 'description' => 'We build modern, scalable and high-performance digital solutions.' ),
 		'contact'   => array( 'eyebrow' => 'Get In Touch', 'title' => "We'd Love to", 'accent' => 'Hear From You', 'description' => 'Have a project in mind, a question, or just want to say hello?' ),
@@ -570,7 +570,7 @@ function vtech_register_sections() {
 				'eyebrow'     => 'Our Story',
 				'title'       => 'From a Small Idea',
 				'accent'      => 'to a Growing Team',
-				'description' => 'Tech Easy started with a simple vision — to make technology easy for everyone. What began as a small passion project has now grown into a full-fledged digital solutions company, serving clients across various industries.',
+				'description' => 'Tech Easy started with a simple vision � to make technology easy for everyone. What began as a small passion project has now grown into a full-fledged digital solutions company, serving clients across various industries.',
 				'image'       => '',
 				'image_alt'   => 'Our journey',
 				'image_text'  => 'Dream Build Grow',
@@ -654,6 +654,60 @@ function vtech_register_sections() {
 					array( 'name' => 'Vikas Yadav', 'role' => 'Project Manager', 'bio' => 'Keeping things on track, from plan to success.', 'avatar' => 'https://placehold.co/300x340/121a40/ffffff?text=VY' ),
 				),
 				'placement'   => array( 'about' => array( 'show' => 1, 'order' => 3 ) ),
+			),
+		)
+	);
+
+/* ---- Homepage: Team section with GIFs linking to member websites ---- */
+	VTech_Sections::register(
+		array(
+			'id'       => 'team',
+			'label'    => 'Our Team (GIFs)',
+			'group'    => 'reusable',
+			'page'     => 'home',
+			'icon'     => 'dashicons-groups',
+			'fields'   => array_merge(
+				array(
+					'eyebrow'     => array( 'type' => 'text', 'label' => 'Eyebrow' ),
+					'title'       => array( 'type' => 'text', 'label' => 'Title' ),
+					'accent'      => array( 'type' => 'text', 'label' => 'Title Accent' ),
+					'description' => array( 'type' => 'textarea', 'label' => 'Description' ),
+					'cta_visible' => array( 'type' => 'toggle', 'label' => 'Show "View All" Button', 'default' => 1 ),
+					'cta'         => array( 'type' => 'text', 'label' => 'Button Text (View All)' ),
+					'cta_url'     => array( 'type' => 'url', 'label' => 'Button Link (View All)' ),
+					'cta_icon'    => array( 'type' => 'icon', 'label' => 'Button Icon (View All)' ),
+					'members'     => array(
+						'type'       => 'repeater',
+						'label'      => 'Team Members',
+						'item_label' => 'Member',
+						'fields'     => array(
+							'name'     => array( 'type' => 'text', 'label' => 'Name' ),
+							'role'     => array( 'type' => 'text', 'label' => 'Role' ),
+							'bio'      => array( 'type' => 'textarea', 'label' => 'Biography' ),
+							'gif'      => array( 'type' => 'image', 'label' => 'Animated GIF (clickable)' ),
+							'website'  => array( 'type' => 'url', 'label' => 'Website URL (GIF redirects here)' ),
+						),
+					),
+				),
+				vtech_placement_schema()
+			),
+			'defaults' => array(
+				'eyebrow'     => 'Our Team',
+				'title'       => 'The People Behind',
+				'accent'      => 'Tech Easy',
+				'description' => "We're a group of skilled professionals, united by a passion for technology and a commitment to excellence.",
+				'cta_visible' => 1,
+				'cta'         => 'Meet Our Team',
+				'cta_url'     => '/about',
+				'cta_icon'    => 'arrow-right',
+				'members'     => array(
+					array( 'name' => 'Rohit Sharma', 'role' => 'Founder & CEO', 'bio' => 'Visionary leader with a passion for innovation.', 'gif' => '', 'website' => '' ),
+					array( 'name' => 'Priya Patel', 'role' => 'CTO', 'bio' => 'Turning ideas into scalable technology solutions.', 'gif' => '', 'website' => '' ),
+					array( 'name' => 'Amit Verma', 'role' => 'Lead Developer', 'bio' => 'Building fast, secure and future-ready applications.', 'gif' => '', 'website' => '' ),
+					array( 'name' => 'Neha Singh', 'role' => 'UI/UX Designer', 'bio' => 'Creating beautiful and user-friendly experiences.', 'gif' => '', 'website' => '' ),
+					array( 'name' => 'Vikas Yadav', 'role' => 'Project Manager', 'bio' => 'Keeping things on track, from plan to success.', 'gif' => '', 'website' => '' ),
+				),
+				'placement'   => array( 'home' => array( 'show' => 1, 'order' => 5 ) ),
 			),
 		)
 	);
@@ -789,8 +843,8 @@ function vtech_register_sections() {
 				'description' => 'Choose a plan that fits your business. No hidden fees, no surprises.',
 				'popular_label' => 'Most Popular',
 				'plans'       => array(
-					array( 'name' => 'Starter', 'price' => '₹14,999', 'period' => '/project', 'desc' => 'Perfect for small businesses and personal websites.', 'featured' => 0, 'features' => array( array( 'text' => 'Responsive Website (up to 5 pages)' ), array( 'text' => 'Basic SEO Setup' ), array( 'text' => 'Contact Form' ), array( 'text' => '1 Month Support' ), array( 'text' => 'Mobile Friendly' ) ), 'cta' => 'Get Started', 'cta_url' => '/contact', 'cta_icon' => 'arrow-right' ),
-					array( 'name' => 'Business', 'price' => '₹39,999', 'period' => '/project', 'desc' => 'Ideal for growing businesses needing more power.', 'featured' => 1, 'features' => array( array( 'text' => 'Website (up to 15 pages)' ), array( 'text' => 'Advanced SEO' ), array( 'text' => 'CMS Integration' ), array( 'text' => '3 Months Support' ), array( 'text' => 'Speed Optimization' ), array( 'text' => 'Analytics Setup' ) ), 'cta' => 'Get Started', 'cta_url' => '/contact', 'cta_icon' => 'arrow-right' ),
+					array( 'name' => 'Starter', 'price' => '?14,999', 'period' => '/project', 'desc' => 'Perfect for small businesses and personal websites.', 'featured' => 0, 'features' => array( array( 'text' => 'Responsive Website (up to 5 pages)' ), array( 'text' => 'Basic SEO Setup' ), array( 'text' => 'Contact Form' ), array( 'text' => '1 Month Support' ), array( 'text' => 'Mobile Friendly' ) ), 'cta' => 'Get Started', 'cta_url' => '/contact', 'cta_icon' => 'arrow-right' ),
+					array( 'name' => 'Business', 'price' => '?39,999', 'period' => '/project', 'desc' => 'Ideal for growing businesses needing more power.', 'featured' => 1, 'features' => array( array( 'text' => 'Website (up to 15 pages)' ), array( 'text' => 'Advanced SEO' ), array( 'text' => 'CMS Integration' ), array( 'text' => '3 Months Support' ), array( 'text' => 'Speed Optimization' ), array( 'text' => 'Analytics Setup' ) ), 'cta' => 'Get Started', 'cta_url' => '/contact', 'cta_icon' => 'arrow-right' ),
 					array( 'name' => 'Enterprise', 'price' => 'Custom', 'period' => '', 'desc' => 'Tailored solutions for large-scale applications.', 'featured' => 0, 'features' => array( array( 'text' => 'Custom Web / Mobile App' ), array( 'text' => 'Dedicated Team' ), array( 'text' => 'Priority Support 24/7' ), array( 'text' => 'Scalable Cloud Setup' ), array( 'text' => 'Ongoing Maintenance' ), array( 'text' => 'Custom Integrations' ) ), 'cta' => 'Contact Us', 'cta_url' => '/contact', 'cta_icon' => 'arrow-right' ),
 				),
 				'placement'   => array( 'pricing' => array( 'show' => 1, 'order' => 1 ) ),
@@ -938,10 +992,10 @@ function vtech_register_sections() {
 				vtech_placement_schema()
 			),
 			'defaults' => array(
-				'info' => array( 'eyebrow' => 'Contact Information', 'title' => "Let's Connect", 'description' => 'Feel free to reach out through any of the channels below. We’re available and happy to help!', 'channels' => array( array( 'icon' => 'phone', 'title' => 'Phone', 'value' => '+91 98765 43210', 'sub' => 'Mon - Sat: 9:00 AM - 7:00 PM' ), array( 'icon' => 'mail', 'title' => 'Email', 'value' => 'info@techeasy.in', 'sub' => 'We’ll get back within 24 hours.' ), array( 'icon' => 'message-circle', 'title' => 'WhatsApp', 'value' => '+91 98765 43210', 'sub' => 'Chat with us directly.' ), array( 'icon' => 'map-pin', 'title' => 'Our Office', 'value' => 'Bhopal, Madhya Pradesh, India', 'sub' => 'Near Chetak Bridge, Bhopal' ) ) ),
-				'form' => array( 'eyebrow' => 'Send Us a Message', 'title' => 'Get In Touch', 'description' => 'Fill out the form below and we’ll get back to you shortly.', 'fields' => array( array( 'key' => 'name', 'label' => 'Your Name', 'type' => 'text', 'placeholder' => 'Enter your name', 'required' => 1 ), array( 'key' => 'email', 'label' => 'Email Address', 'type' => 'email', 'placeholder' => 'Enter your email', 'required' => 1 ), array( 'key' => 'phone', 'label' => 'Phone Number', 'type' => 'tel', 'placeholder' => 'Enter your phone number', 'required' => 1 ), array( 'key' => 'service', 'label' => 'Service Interested In', 'type' => 'select', 'placeholder' => 'Select a service', 'options' => "Web Development\nMobile App Development\nUI/UX Design\nCloud Solutions\nCustom Software\nOther" ), array( 'key' => 'details', 'label' => 'Project Details', 'type' => 'textarea', 'placeholder' => 'Tell us about your project or how we can help...' ) ), 'services' => array( array( 'name' => 'Web Development' ), array( 'name' => 'Mobile App Development' ), array( 'name' => 'UI/UX Design' ), array( 'name' => 'Cloud Solutions' ), array( 'name' => 'Custom Software' ), array( 'name' => 'Other' ) ), 'terms_text' => 'Terms & Conditions', 'privacy_text' => 'Privacy Policy', 'submit_label' => 'Send Message', 'privacy_notice' => 'Your information is safe with us. We respect your privacy.' ),
-				'office' => array( 'eyebrow' => 'Our Office', 'title' => 'Visit Our Office', 'description' => 'We’re located in the heart of Bhopal. Feel free to visit us during our working hours.', 'image' => 'https://placehold.co/640x460/0a0f29/ec4899?text=Our+Office', 'address' => 'Tech Easy, Bhopal', 'map_image' => 'https://placehold.co/640x520/0a0f29/1b2550?text=Map', 'features' => array( array( 'icon' => 'map-pin', 'title' => 'Nearby Metro', 'sub' => '(2 km)' ), array( 'icon' => 'shield', 'title' => 'Parking Available', 'sub' => '(Free)' ), array( 'icon' => 'arrow-right', 'title' => 'Easy Access', 'sub' => 'From Main Road' ) ), 'cta' => 'View Office Tour' ),
-				'faq' => array( 'eyebrow' => 'Quick Help', 'title' => 'Frequently Asked', 'accent' => 'Questions', 'description' => 'Find answers to some of the most common questions. Still have a question? Feel free to contact us.', 'cta' => 'View All FAQs', 'items' => array( array( 'q' => 'How long does it take to complete a project?', 'a' => 'Project timelines vary based on scope. A typical website takes 2–4 weeks, while larger web or mobile apps can take 6–12 weeks. We share a clear timeline before starting.' ), array( 'q' => 'Do you provide ongoing support after delivery?', 'a' => 'Yes. We offer maintenance and support packages to keep your product secure, updated and running smoothly after launch.' ), array( 'q' => 'What technologies do you use?', 'a' => 'We work with modern stacks like React, Node.js, React Native, WordPress and cloud platforms, choosing the best fit for your needs.' ), array( 'q' => 'How can I get a quote for my project?', 'a' => 'Just fill out the contact form or reach out via phone/email. We’ll discuss your requirements and send a detailed quote within 24 hours.' ) ) ),
+				'info' => array( 'eyebrow' => 'Contact Information', 'title' => "Let's Connect", 'description' => 'Feel free to reach out through any of the channels below. We�re available and happy to help!', 'channels' => array( array( 'icon' => 'phone', 'title' => 'Phone', 'value' => '+91 98765 43210', 'sub' => 'Mon - Sat: 9:00 AM - 7:00 PM' ), array( 'icon' => 'mail', 'title' => 'Email', 'value' => 'info@techeasy.in', 'sub' => 'We�ll get back within 24 hours.' ), array( 'icon' => 'message-circle', 'title' => 'WhatsApp', 'value' => '+91 98765 43210', 'sub' => 'Chat with us directly.' ), array( 'icon' => 'map-pin', 'title' => 'Our Office', 'value' => 'Bhopal, Madhya Pradesh, India', 'sub' => 'Near Chetak Bridge, Bhopal' ) ) ),
+				'form' => array( 'eyebrow' => 'Send Us a Message', 'title' => 'Get In Touch', 'description' => 'Fill out the form below and we�ll get back to you shortly.', 'fields' => array( array( 'key' => 'name', 'label' => 'Your Name', 'type' => 'text', 'placeholder' => 'Enter your name', 'required' => 1 ), array( 'key' => 'email', 'label' => 'Email Address', 'type' => 'email', 'placeholder' => 'Enter your email', 'required' => 1 ), array( 'key' => 'phone', 'label' => 'Phone Number', 'type' => 'tel', 'placeholder' => 'Enter your phone number', 'required' => 1 ), array( 'key' => 'service', 'label' => 'Service Interested In', 'type' => 'select', 'placeholder' => 'Select a service', 'options' => "Web Development\nMobile App Development\nUI/UX Design\nCloud Solutions\nCustom Software\nOther" ), array( 'key' => 'details', 'label' => 'Project Details', 'type' => 'textarea', 'placeholder' => 'Tell us about your project or how we can help...' ) ), 'services' => array( array( 'name' => 'Web Development' ), array( 'name' => 'Mobile App Development' ), array( 'name' => 'UI/UX Design' ), array( 'name' => 'Cloud Solutions' ), array( 'name' => 'Custom Software' ), array( 'name' => 'Other' ) ), 'terms_text' => 'Terms & Conditions', 'privacy_text' => 'Privacy Policy', 'submit_label' => 'Send Message', 'privacy_notice' => 'Your information is safe with us. We respect your privacy.' ),
+				'office' => array( 'eyebrow' => 'Our Office', 'title' => 'Visit Our Office', 'description' => 'We�re located in the heart of Bhopal. Feel free to visit us during our working hours.', 'image' => 'https://placehold.co/640x460/0a0f29/ec4899?text=Our+Office', 'address' => 'Tech Easy, Bhopal', 'map_image' => 'https://placehold.co/640x520/0a0f29/1b2550?text=Map', 'features' => array( array( 'icon' => 'map-pin', 'title' => 'Nearby Metro', 'sub' => '(2 km)' ), array( 'icon' => 'shield', 'title' => 'Parking Available', 'sub' => '(Free)' ), array( 'icon' => 'arrow-right', 'title' => 'Easy Access', 'sub' => 'From Main Road' ) ), 'cta' => 'View Office Tour' ),
+				'faq' => array( 'eyebrow' => 'Quick Help', 'title' => 'Frequently Asked', 'accent' => 'Questions', 'description' => 'Find answers to some of the most common questions. Still have a question? Feel free to contact us.', 'cta' => 'View All FAQs', 'items' => array( array( 'q' => 'How long does it take to complete a project?', 'a' => 'Project timelines vary based on scope. A typical website takes 2�4 weeks, while larger web or mobile apps can take 6�12 weeks. We share a clear timeline before starting.' ), array( 'q' => 'Do you provide ongoing support after delivery?', 'a' => 'Yes. We offer maintenance and support packages to keep your product secure, updated and running smoothly after launch.' ), array( 'q' => 'What technologies do you use?', 'a' => 'We work with modern stacks like React, Node.js, React Native, WordPress and cloud platforms, choosing the best fit for your needs.' ), array( 'q' => 'How can I get a quote for my project?', 'a' => 'Just fill out the contact form or reach out via phone/email. We�ll discuss your requirements and send a detailed quote within 24 hours.' ) ) ),
 				'placement' => array( 'contact' => array( 'show' => 1, 'order' => 1 ) ),
 			),
 		)
@@ -1151,7 +1205,7 @@ function vtech_register_sections() {
 							'image'       => array( 'type' => 'image', 'label' => 'Project Image' ),
 							'brand'       => array( 'type' => 'text', 'label' => 'Brand Name (overlay on image)', 'placeholder' => 'BizConnect' ),
 							'categories'  => array( 'type' => 'multi_select', 'label' => 'Categories (select multiple)', 'options' => vtech_portfolio_category_options() ),
-							'title'       => array( 'type' => 'text', 'label' => 'Title', 'placeholder' => 'BizConnect – Corporate Website' ),
+							'title'       => array( 'type' => 'text', 'label' => 'Title', 'placeholder' => 'BizConnect � Corporate Website' ),
 							'author'      => array( 'type' => 'text', 'label' => 'Author / Project Team' ),
 							'date'        => array( 'type' => 'text', 'label' => 'Project Date' ),
 							'desc'        => array( 'type' => 'textarea', 'label' => 'Short Description' ),
@@ -1197,15 +1251,15 @@ function vtech_register_sections() {
 					array( 'name' => 'Branding' ),
 				),
 				'items'       => array(
-					array( 'image' => 'https://placehold.co/640x420/0a0f29/2d7cff?text=BizConnect', 'brand' => 'BizConnect', 'categories' => array( 'Website' ), 'title' => 'BizConnect – Corporate Website', 'desc' => 'Modern corporate website for a digital consulting company with a clean UI and fast performance.', 'tech' => array( array( 'name' => 'React' ), array( 'name' => 'WordPress' ), array( 'name' => 'Tailwind' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 0 ),
-					array( 'image' => 'https://placehold.co/640x420/0a0f29/a855f7?text=FitLife', 'brand' => 'FitLife', 'categories' => array( 'Mobile App' ), 'title' => 'FitLife – Fitness App', 'desc' => 'A complete fitness tracking app with workout plans, progress tracking and healthy lifestyle tips.', 'tech' => array( array( 'name' => 'React Native' ), array( 'name' => 'Firebase' ), array( 'name' => 'UI/UX' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 0 ),
-					array( 'image' => 'https://placehold.co/640x420/0a0f29/22d3ee?text=EduVerse', 'brand' => 'EduVerse', 'categories' => array( 'Web Application' ), 'title' => 'EduVerse – Learning Platform', 'desc' => 'Online learning platform with video courses, quizzes and student progress tracking.', 'tech' => array( array( 'name' => 'React' ), array( 'name' => 'Node.js' ), array( 'name' => 'MongoDB' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 1 ),
-					array( 'image' => 'https://placehold.co/640x420/0a0f29/f97316?text=StyleCart', 'brand' => 'StyleCart', 'categories' => array( 'E-Commerce' ), 'title' => 'StyleCart – E-Commerce Store', 'desc' => 'Modern online store with secure payment, product filters and smooth shopping experience.', 'tech' => array( array( 'name' => 'React' ), array( 'name' => 'Stripe' ), array( 'name' => 'Tailwind' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 0 ),
-					array( 'image' => 'https://placehold.co/640x420/0a0f29/ec4899?text=Travely', 'brand' => 'Travely', 'categories' => array( 'UI/UX Design' ), 'title' => 'Travely – Travel Booking UI', 'desc' => 'Clean and modern UI/UX design for travel booking with smooth user experience.', 'tech' => array( array( 'name' => 'Figma' ), array( 'name' => 'UI/UX' ), array( 'name' => 'Prototype' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 0 ),
-					array( 'image' => 'https://placehold.co/640x420/0a0f29/22d3ee?text=FoodHub', 'brand' => 'FoodHub', 'categories' => array( 'Website' ), 'title' => 'FoodHub – Restaurant Website', 'desc' => 'A beautiful and responsive restaurant website with online menu and table booking.', 'tech' => array( array( 'name' => 'WordPress' ), array( 'name' => 'Elementor' ), array( 'name' => 'JavaScript' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 0 ),
-					array( 'image' => 'https://placehold.co/640x420/0a0f29/a855f7?text=TaskPro', 'brand' => 'TaskPro', 'categories' => array( 'Mobile App' ), 'title' => 'TaskPro – Productivity App', 'desc' => 'Task management app with team collaboration, reminders and real-time sync.', 'tech' => array( array( 'name' => 'React Native' ), array( 'name' => 'Firebase' ), array( 'name' => 'Redux' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 0 ),
-					array( 'image' => 'https://placehold.co/640x420/0a0f29/22d3ee?text=HealthCare', 'brand' => 'HealthCare', 'categories' => array( 'Web Application' ), 'title' => 'HealthCare – Hospital Management', 'desc' => 'Patient management system with appointment booking and doctor panel.', 'tech' => array( array( 'name' => 'React' ), array( 'name' => 'Node.js' ), array( 'name' => 'MySQL' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 0 ),
-					array( 'image' => 'https://placehold.co/640x420/0a0f29/ec4899?text=PixelCraft', 'brand' => 'PixelCraft', 'categories' => array( 'Branding' ), 'title' => 'PixelCraft – Brand Identity', 'desc' => 'Logo, brand guide and complete visual identity design for a creative agency.', 'tech' => array( array( 'name' => 'Logo Design' ), array( 'name' => 'Branding' ), array( 'name' => 'Graphics' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 0 ),
+					array( 'image' => 'https://placehold.co/640x420/0a0f29/2d7cff?text=BizConnect', 'brand' => 'BizConnect', 'categories' => array( 'Website' ), 'title' => 'BizConnect � Corporate Website', 'desc' => 'Modern corporate website for a digital consulting company with a clean UI and fast performance.', 'tech' => array( array( 'name' => 'React' ), array( 'name' => 'WordPress' ), array( 'name' => 'Tailwind' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 0 ),
+					array( 'image' => 'https://placehold.co/640x420/0a0f29/a855f7?text=FitLife', 'brand' => 'FitLife', 'categories' => array( 'Mobile App' ), 'title' => 'FitLife � Fitness App', 'desc' => 'A complete fitness tracking app with workout plans, progress tracking and healthy lifestyle tips.', 'tech' => array( array( 'name' => 'React Native' ), array( 'name' => 'Firebase' ), array( 'name' => 'UI/UX' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 0 ),
+					array( 'image' => 'https://placehold.co/640x420/0a0f29/22d3ee?text=EduVerse', 'brand' => 'EduVerse', 'categories' => array( 'Web Application' ), 'title' => 'EduVerse � Learning Platform', 'desc' => 'Online learning platform with video courses, quizzes and student progress tracking.', 'tech' => array( array( 'name' => 'React' ), array( 'name' => 'Node.js' ), array( 'name' => 'MongoDB' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 1 ),
+					array( 'image' => 'https://placehold.co/640x420/0a0f29/f97316?text=StyleCart', 'brand' => 'StyleCart', 'categories' => array( 'E-Commerce' ), 'title' => 'StyleCart � E-Commerce Store', 'desc' => 'Modern online store with secure payment, product filters and smooth shopping experience.', 'tech' => array( array( 'name' => 'React' ), array( 'name' => 'Stripe' ), array( 'name' => 'Tailwind' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 0 ),
+					array( 'image' => 'https://placehold.co/640x420/0a0f29/ec4899?text=Travely', 'brand' => 'Travely', 'categories' => array( 'UI/UX Design' ), 'title' => 'Travely � Travel Booking UI', 'desc' => 'Clean and modern UI/UX design for travel booking with smooth user experience.', 'tech' => array( array( 'name' => 'Figma' ), array( 'name' => 'UI/UX' ), array( 'name' => 'Prototype' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 0 ),
+					array( 'image' => 'https://placehold.co/640x420/0a0f29/22d3ee?text=FoodHub', 'brand' => 'FoodHub', 'categories' => array( 'Website' ), 'title' => 'FoodHub � Restaurant Website', 'desc' => 'A beautiful and responsive restaurant website with online menu and table booking.', 'tech' => array( array( 'name' => 'WordPress' ), array( 'name' => 'Elementor' ), array( 'name' => 'JavaScript' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 0 ),
+					array( 'image' => 'https://placehold.co/640x420/0a0f29/a855f7?text=TaskPro', 'brand' => 'TaskPro', 'categories' => array( 'Mobile App' ), 'title' => 'TaskPro � Productivity App', 'desc' => 'Task management app with team collaboration, reminders and real-time sync.', 'tech' => array( array( 'name' => 'React Native' ), array( 'name' => 'Firebase' ), array( 'name' => 'Redux' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 0 ),
+					array( 'image' => 'https://placehold.co/640x420/0a0f29/22d3ee?text=HealthCare', 'brand' => 'HealthCare', 'categories' => array( 'Web Application' ), 'title' => 'HealthCare � Hospital Management', 'desc' => 'Patient management system with appointment booking and doctor panel.', 'tech' => array( array( 'name' => 'React' ), array( 'name' => 'Node.js' ), array( 'name' => 'MySQL' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 0 ),
+					array( 'image' => 'https://placehold.co/640x420/0a0f29/ec4899?text=PixelCraft', 'brand' => 'PixelCraft', 'categories' => array( 'Branding' ), 'title' => 'PixelCraft � Brand Identity', 'desc' => 'Logo, brand guide and complete visual identity design for a creative agency.', 'tech' => array( array( 'name' => 'Logo Design' ), array( 'name' => 'Branding' ), array( 'name' => 'Graphics' ) ), 'button' => 1, 'button_text' => 'View Project', 'button_url' => '', 'button_icon' => 'arrowRight', 'external' => 0, 'feature' => 0 ),
 				),
 				'placement'   => array(
 					'home'      => array( 'show' => 1, 'order' => 4 ),
@@ -1228,7 +1282,7 @@ function vtech_register_sections() {
 					'brand'       => array( 'type' => 'text', 'label' => 'Brand Text on Image', 'placeholder' => 'EduVerse Dashboard' ),
 					'badge'       => array( 'type' => 'text', 'label' => 'Badge Label (optional)', 'placeholder' => 'Featured Case Study' ),
 					'eyebrow'     => array( 'type' => 'text', 'label' => 'Eyebrow' ),
-					'title'       => array( 'type' => 'text', 'label' => 'Title', 'placeholder' => 'EduVerse – Learning Platform' ),
+					'title'       => array( 'type' => 'text', 'label' => 'Title', 'placeholder' => 'EduVerse � Learning Platform' ),
 					'description' => array( 'type' => 'textarea', 'label' => 'Description' ),
 					'tech'        => array(
 						'type'       => 'repeater',
@@ -1255,7 +1309,7 @@ function vtech_register_sections() {
 			'defaults' => array(
 				'image'       => 'https://placehold.co/960x660/0a0f29/2d7cff?text=Case+Study',
 				'eyebrow'     => 'Case Study',
-				'title'       => 'EduVerse – Learning Platform',
+				'title'       => 'EduVerse � Learning Platform',
 				'description' => 'We developed a modern and scalable learning platform with video courses, live sessions, quizzes and student progress tracking. The platform is designed to provide a seamless and engaging learning experience across all devices.',
 				'brand'       => 'EduVerse Dashboard',
 				'badge'       => 'Featured Case Study',
