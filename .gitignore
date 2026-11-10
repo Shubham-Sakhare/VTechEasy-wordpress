@@ -1,6 +1,3 @@
-# Ignore Frontend folder
-/Frontend/
-
 # Ignore keys folder
 /keys/
 
@@ -15,3 +12,18 @@
 /backend/wp-content/blogs.dir/
 /backend/*.log
 /backend/error_log
+
+# Frontend folder ignores (node_modules, dist, env files, editor files)
+/Frontend/node_modules/
+/Frontend/dist/
+/Frontend/dist-ssr/
+/Frontend/.env
+/Frontend/.env.local
+/Frontend/.env.production
+/Frontend/*.log
+/Frontend/.vscode/*
+/Frontend/.idea
+/Frontend/.DS_Store
+
+# Keep frontend example env file tracked
+!/Frontend/.env.example
