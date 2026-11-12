@@ -1,74 +1,115 @@
-// WordPress REST API client.
+// ============================================================
+//  WordPress REST API client
+// ============================================================
 //
-// Set VITE_WP_API_URL in a .env file to your WordPress site root, e.g.:
-//   VITE_WP_API_URL=http://localhost/Vtecheasy/Vtecheasy-Backend
+//  Configuration (set in .env):
+//    VITE_WP_API_URL   = WordPress site root, e.g.:
+//                        https://vtecheasy.great-site.net/backend
+//    VITE_WP_REST_MODE = "query"  → ?rest_route=/vtech/v1/...  (default, works everywhere)
+//                        "path"   → /wp-json/vtech/v1/...      (needs pretty permalinks)
 //
-// WordPress REST requests use the standard /wp-json/<namespace>/<route> URLs.
-// Until a URL is set, requests are skipped and the UI uses the dummy data in
-// src/data/siteData.js.
+//  Dev-mode proxy:
+//    In development (import.meta.env.DEV === true), every request goes through
+//    Vite's /wp-proxy path instead of hitting the live backend directly.
+//    This fixes CORS and InfinityFree's bot-protection challenge.
+//    The proxy is defined in vite.config.js and strips the /wp-proxy prefix
+//    before forwarding to the real backend with a browser-like User-Agent.
+//
+//  The UI falls back to src/data/siteData.js dummy data when no URL is set.
+// ============================================================
 
-const RAW_BASE = import.meta.env.VITE_WP_API_URL || "";
-// Normalise: strip trailing slash and any trailing /wp-json so we always
-// hold the site root here.
-const BASE_URL = RAW_BASE.replace(/\/+$/, "").replace(/\/wp-json$/, "");
+const RAW_BASE = (import.meta.env.VITE_WP_API_URL || "").replace(/\/+$/, "").replace(/\/wp-json$/, "");
+
+// In dev mode, use the Vite proxy path (/wp-proxy) so the browser never
+// makes a cross-origin request directly to the live server.
+// In production the full VITE_WP_API_URL is used directly.
+const BASE_URL = (import.meta.env.DEV && RAW_BASE)
+  ? "/wp-proxy"
+  : RAW_BASE;
 
 // REST URL form:
-//   - "query"  -> https://site/?rest_route=/vtech/v1/... (works on ANY WP,
-//                 no pretty-permalink dependency — safest on shared hosts).
-//   - "path"   -> https://site/wp-json/vtech/v1/... (needs pretty permalinks).
-// Default to the universal query form unless explicitly set to "path".
-// Localhost always uses the query form. Override with VITE_WP_REST_MODE.
-const REST_MODE = String(import.meta.env.VITE_WP_REST_MODE || "").toLowerCase();
+//   "query"  → https://site/?rest_route=/vtech/v1/...  (universal, no pretty-permalinks)
+//   "path"   → https://site/wp-json/vtech/v1/...       (needs pretty permalinks)
+const REST_MODE = String(import.meta.env.VITE_WP_REST_MODE || "query").toLowerCase();
 const USE_QUERY_REST_ROUTE = REST_MODE !== "path";
 
-export const isApiConfigured = Boolean(BASE_URL);
+export const isApiConfigured = Boolean(RAW_BASE);
 
-/** @param {string} route REST route; @param {object} params extra query params */
+/** Build the full REST URL for a given route and optional query params */
 function restUrl(route, params = {}) {
+  // In dev mode BASE_URL is a relative path (/wp-proxy), so we need an absolute URL.
+  const fullBase = BASE_URL.startsWith("/")
+    ? `${window.location.origin}${BASE_URL}`
+    : BASE_URL;
+
   const url = USE_QUERY_REST_ROUTE
-    ? new URL(`${BASE_URL}/`)
-    : new URL(`${BASE_URL}/wp-json${route}`);
+    ? new URL(`${fullBase}/`)
+    : new URL(`${fullBase}/wp-json${route}`);
+
   if (USE_QUERY_REST_ROUTE) {
     url.searchParams.set("rest_route", route);
   }
+
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
       url.searchParams.set(key, String(value));
     }
   });
+
   return url.toString();
 }
 
+/** Generic GET request */
 async function request(route, { params } = {}) {
   if (!isApiConfigured) {
-    throw new Error("WordPress API URL is not configured (VITE_WP_API_URL).");
+    throw new Error("WordPress API URL is not configured (VITE_WP_API_URL in .env).");
   }
 
-  const res = await fetch(restUrl(route, params), {
+  const url = restUrl(route, params);
+
+  if (import.meta.env.DEV) {
+    console.debug("[WP API] →", url);
+  }
+
+  const res = await fetch(url, {
     cache: "no-store",
     headers: { Accept: "application/json" },
   });
 
   if (!res.ok) {
-    throw new Error(`WordPress request failed: ${res.status} ${res.statusText}`);
+    throw new Error(`WordPress API error: ${res.status} ${res.statusText} (${url})`);
   }
 
-  return res.json();
+  const text = await res.text();
+
+  // Guard against HTML responses (bot-protection page, WP error pages)
+  if (text.trim().startsWith("<")) {
+    if (import.meta.env.DEV) {
+      console.error("[WP API] Got HTML instead of JSON — bot protection or server error:", text.slice(0, 300));
+    }
+    throw new Error("WordPress returned HTML instead of JSON. The API may be blocked or misconfigured.");
+  }
+
+  return JSON.parse(text);
 }
 
+/** Generic POST / form submit */
 async function submitForm(route, payload) {
   if (!isApiConfigured) {
     throw new Error("The form service is not configured. Please contact us directly.");
   }
 
   const isMultipart = payload instanceof FormData;
-  const res = await fetch(restUrl(route), {
+  const url = restUrl(route);
+
+  const res = await fetch(url, {
     method: "POST",
     headers: isMultipart
       ? { Accept: "application/json" }
       : { Accept: "application/json", "Content-Type": "application/json" },
     body: isMultipart ? payload : JSON.stringify(payload),
   });
+
   let data;
   try {
     data = await res.json();
@@ -79,8 +120,11 @@ async function submitForm(route, payload) {
   if (!res.ok) {
     throw new Error(data?.message || `Form submission failed (${res.status}).`);
   }
+
   return data;
 }
+
+// ── Public API helpers ────────────────────────────────────────
 
 export function submitContactForm(payload) {
   return submitForm("/vtech/v1/contact", payload);
@@ -90,29 +134,26 @@ export function submitNewsletterForm(payload) {
   return submitForm("/vtech/v1/newsletter", payload);
 }
 
-// --- VTech layout (Header + Footer, served by the vtech-core plugin) ---
-
+/** Header + Footer data (served by vtech-core plugin) */
 export function getLayout() {
   return request("/vtech/v1/layout");
 }
 
-// --- VTech page builder (per-page hero + ordered reusable sections) ---
-
-/** List of frontend pages registered in the plugin. */
+/** All frontend pages registered in the plugin */
 export function getVtechPages() {
   return request("/vtech/v1/pages");
 }
 
 /**
- * A single page's content: { slug, hero, sections: [{ type, order, data }] }.
- *
- * @param {string} slug e.g. "home", "about".
+ * A single page's content:
+ *   { slug, hero, sections: [{ type, order, data }] }
+ * @param {string} slug  e.g. "home", "about"
  */
 export function getVtechPage(slug) {
   return request(`/vtech/v1/page/${encodeURIComponent(slug)}`);
 }
 
-// --- Example core endpoint helpers (ready for future sections) ---
+// ── Standard WordPress REST helpers ──────────────────────────
 
 export function getPosts({ perPage = 6, page = 1 } = {}) {
   return request("/wp/v2/posts", {

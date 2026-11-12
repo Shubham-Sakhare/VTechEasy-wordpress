@@ -107,7 +107,7 @@ export default function Services({ data, isParent = true }) {
               key={item.title}
               direction="up"
               delay={i * 90}
-              className={`group card card-glow p-6 transition-all duration-300 hover:-translate-y-1.5 hover:border-white/15 hover:shadow-[0_30px_60px_-25px_rgba(45,124,255,0.5)] ${
+              className={`group border-beam card card-glow p-6 transition-all duration-300 hover:-translate-y-2 hover:border-brand-blue/30 hover:shadow-[0_30px_60px_-20px_rgba(45,124,255,0.45),0_0_0_1px_rgba(45,124,255,0.2)] ${
                 scroll ? "w-[calc((100%-3rem)/3)] min-w-[calc((100%-3rem)/3)] flex-none snap-start max-md:w-[80%] max-md:min-w-[80%] max-sm:w-[88%] max-sm:min-w-[88%]" : ""
               }`}
             >

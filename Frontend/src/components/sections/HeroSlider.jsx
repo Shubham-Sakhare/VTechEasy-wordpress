@@ -3,18 +3,14 @@ import PageHero from "./PageHero";
 import Icon from "../ui/Icon";
 
 /**
- * Functional hero slider.
- *
- * - All slides are stacked in a single CSS grid cell so the section keeps a
- *   STABLE height (the tallest slide drives it) — changing slides, or a slide
- *   with little/no text, never makes the section grow or shrink. A min-height
- *   guarantees a consistent hero size even when every slide is short.
- * - A control bar mirrors the reference design: prev/next arrows + dots on the
- *   left, a "01 / 04" counter on the right, separated by a divider.
- *
- * props:
- *  - slides: array of PageHero-ready slide objects (from normalizeHero).
- *  - options: { autoplay, interval, loop, arrows, dots } slider behaviour.
+ * Enhanced hero slider.
+ * - Stable-height CSS grid stage (every slide = same cell)
+ * - Cross-fade between slides (opacity transition)
+ * - Autoplay progress bar under the control row
+ * - Slide-enter direction animation (new slide slides up into view)
+ * - Ken Burns-style zoom on the active slide's image is handled inside PageHero
+ *   via the `isActive` prop we pass down
+ * - Keyboard-accessible (←/→ arrow keys)
  */
 export default function HeroSlider({ slides = [], options = {} }) {
   const {
@@ -29,10 +25,29 @@ export default function HeroSlider({ slides = [], options = {} }) {
   const [rawActive, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const timerRef = useRef(null);
+  const rafRef = useRef(null);
+  const progressBarRef = useRef(null);
+  const progressStart = useRef(null);
 
-  // Clamp during render so a shrinking slide list never points past the end
-  // (avoids a setState-in-effect pass).
   const active = count > 0 ? Math.min(rawActive, count - 1) : 0;
+
+  /** Update the progress bar DOM element directly via rAF — avoids setState inside effect */
+  const startProgress = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    progressStart.current = performance.now();
+    const dur = Math.max(1500, interval);
+    const tick = (now) => {
+      const pct = Math.min(100, ((now - progressStart.current) / dur) * 100);
+      if (progressBarRef.current) progressBarRef.current.style.width = `${pct}%`;
+      if (pct < 100) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+  }, [interval]);
+
+  const resetProgress = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (progressBarRef.current) progressBarRef.current.style.width = "0%";
+  }, []);
 
   const go = useCallback(
     (next) => {
@@ -49,7 +64,7 @@ export default function HeroSlider({ slides = [], options = {} }) {
   const prev = useCallback(() => go((c) => c - 1), [go]);
   const next = useCallback(() => go((c) => c + 1), [go]);
 
-  // Autoplay.
+  // Autoplay
   useEffect(() => {
     if (!autoplay || paused || count <= 1) return undefined;
     timerRef.current = setInterval(() => {
@@ -57,6 +72,23 @@ export default function HeroSlider({ slides = [], options = {} }) {
     }, Math.max(1500, interval));
     return () => clearInterval(timerRef.current);
   }, [autoplay, paused, count, interval, loop]);
+
+  // Progress bar rAF — direct DOM writes, no setState
+  useEffect(() => {
+    if (!autoplay || paused || count <= 1) { resetProgress(); return undefined; }
+    startProgress();
+    return resetProgress;
+  }, [active, autoplay, paused, count, startProgress, resetProgress]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "ArrowLeft") prev();
+      if (e.key === "ArrowRight") next();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [prev, next]);
 
   if (count === 0) return null;
 
@@ -70,12 +102,7 @@ export default function HeroSlider({ slides = [], options = {} }) {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/*
-       * Stable-height stage: every slide occupies the SAME grid cell
-       * (grid-area 1/1), so the section height never jumps between slides or
-       * when a slide's image is larger/smaller. The control bar below sits in
-       * normal flow, so its position does NOT depend on each slide's image size.
-       */}
+      {/* ── Slide stage ── */}
       <div className="grid items-stretch">
         {slides.map((slide, i) => {
           const isActive = i === active;
@@ -88,89 +115,94 @@ export default function HeroSlider({ slides = [], options = {} }) {
               aria-hidden={!isActive}
               style={{ gridArea: "1 / 1" }}
               className={[
-                "flex w-full flex-col justify-center transition-opacity duration-700 ease-out",
-                isActive ? "opacity-100" : "pointer-events-none opacity-0",
+                "flex w-full flex-col justify-center transition-all duration-700 ease-in-out",
+                isActive
+                  ? "opacity-100 translate-y-0"
+                  : "pointer-events-none opacity-0 translate-y-4",
               ].join(" ")}
             >
-              <PageHero {...slide} />
+              <PageHero {...slide} isActive={isActive} />
             </div>
           );
         })}
       </div>
 
-      {/*
-       * Control bar in NORMAL FLOW at the bottom of the section (NOT absolute),
-       * so it always stays INSIDE the hero's painted background and never spills
-       * out below it. It mirrors the hero's 2-column grid: the LEFT column is an
-       * empty spacer and the controls live in the RIGHT column, so arrows +
-       * counter sit UNDER the right-side image. Because the slide stage keeps a
-       * stable height and the bar is pinned to the grid column (not the image),
-       * its position stays fixed whether the slide image is big or small, and it
-       * never overlaps the content.
-       * Layout (right column):  <  ●●●  >            01 / 04
-       */}
+      {/* ── Control bar ── */}
       {showControls && (
         <div className="relative z-20 -mt-6 pb-10 sm:-mt-8 sm:pb-14">
           <div className="container-x grid items-center gap-12 lg:grid-cols-2">
-            {/* Left column spacer (keeps controls under the right image) */}
+            {/* Left spacer */}
             <div className="hidden lg:block" aria-hidden="true" />
 
-            {/* Right column: arrows + dots + counter, centered together */}
-            <div className="flex items-center justify-center gap-4">
-              {arrows && (
-                <button
-                  type="button"
-                  onClick={prev}
-                  disabled={!loop && active === 0}
-                  aria-label="Previous slide"
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 text-white/80 transition-all duration-200 hover:border-white/40 hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Icon name="arrowLeft" className="h-3.5 w-3.5" />
-                </button>
-              )}
+            {/* Controls */}
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex items-center gap-4">
+                {arrows && (
+                  <button
+                    type="button"
+                    onClick={prev}
+                    disabled={!loop && active === 0}
+                    aria-label="Previous slide"
+                    className="group grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 text-white/70 transition-all duration-200 hover:border-brand-blue/50 hover:bg-brand-blue/10 hover:text-white hover:scale-110 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Icon name="arrowLeft" className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
+                  </button>
+                )}
 
-              {dots && (
-                <div className="flex items-center gap-2" role="tablist" aria-label="Slides">
-                  {slides.map((_, i) => {
-                    const isDot = i === active;
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        role="tab"
-                        aria-selected={isDot}
-                        aria-label={`Go to slide ${i + 1}`}
-                        onClick={() => go(i)}
-                        className={[
-                          "h-2 rounded-full transition-all duration-300",
-                          isDot
-                            ? "w-7 bg-gradient-to-r from-brand-blue to-brand-purple"
-                            : "w-2 bg-white/25 hover:bg-white/50",
-                        ].join(" ")}
-                      />
-                    );
-                  })}
+                {dots && (
+                  <div className="flex items-center gap-2" role="tablist" aria-label="Slides">
+                    {slides.map((_, i) => {
+                      const isD = i === active;
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          role="tab"
+                          aria-selected={isD}
+                          aria-label={`Go to slide ${i + 1}`}
+                          onClick={() => go(i)}
+                          className={[
+                            "h-2 rounded-full transition-all duration-400",
+                            isD
+                              ? "w-8 bg-gradient-to-r from-brand-blue to-brand-purple shadow-[0_0_8px_rgba(45,124,255,0.6)]"
+                              : "w-2 bg-white/25 hover:bg-white/50 hover:w-4",
+                          ].join(" ")}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+
+                {arrows && (
+                  <button
+                    type="button"
+                    onClick={next}
+                    disabled={!loop && active === count - 1}
+                    aria-label="Next slide"
+                    className="group grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 text-white/70 transition-all duration-200 hover:border-brand-blue/50 hover:bg-brand-blue/10 hover:text-white hover:scale-110 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Icon name="arrowRight" className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+                  </button>
+                )}
+
+                <div className="font-display text-sm font-semibold tabular-nums tracking-wide text-white/50">
+                  <span className="text-white/90">{String(active + 1).padStart(2, "0")}</span>
+                  <span className="mx-1.5 text-white/25">/</span>
+                  <span>{String(count).padStart(2, "0")}</span>
+                </div>
+              </div>
+
+              {/* Autoplay progress bar — driven by rAF via DOM ref */}
+              {autoplay && (
+                <div className="h-[2px] w-32 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    ref={progressBarRef}
+                    className="h-full rounded-full bg-gradient-to-r from-brand-blue to-brand-purple"
+                    style={{ width: "0%" }}
+                    aria-hidden="true"
+                  />
                 </div>
               )}
-
-              {arrows && (
-                <button
-                  type="button"
-                  onClick={next}
-                  disabled={!loop && active === count - 1}
-                  aria-label="Next slide"
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 text-white/80 transition-all duration-200 hover:border-white/40 hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Icon name="arrowRight" className="h-3.5 w-3.5" />
-                </button>
-              )}
-
-              {/* Counter as part of the centered control group */}
-              <div className="font-display text-sm font-semibold tabular-nums tracking-wide text-white/60">
-                <span className="text-white">{String(active + 1).padStart(2, "0")}</span>
-                <span className="mx-1.5 text-white/30">/</span>
-                <span>{String(count).padStart(2, "0")}</span>
-              </div>
             </div>
           </div>
         </div>

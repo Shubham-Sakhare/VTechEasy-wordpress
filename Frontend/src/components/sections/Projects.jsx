@@ -82,7 +82,7 @@ export default function Projects({ data }) {
                   direction="up"
                   delay={(i % 3) * 100}
                   data-project-card=""
-                  className="group card w-full min-w-0 shrink-0 snap-start overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:border-white/15 hover:shadow-[0_30px_70px_-25px_rgba(45,124,255,0.5)] sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-3rem)/3)]"
+                  className="group border-beam card w-full min-w-0 shrink-0 snap-start overflow-hidden transition-all duration-350 hover:-translate-y-2 hover:border-brand-blue/25 hover:shadow-[0_30px_70px_-20px_rgba(45,124,255,0.45),0_0_0_1px_rgba(45,124,255,0.15)] sm:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-3rem)/3)]"
                 >
                   {/* Portfolio image */}
                   <div
