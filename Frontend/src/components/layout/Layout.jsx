@@ -8,6 +8,7 @@ import { usePageContent } from "../../hooks/usePageContent";
 import { useLayout } from "../../hooks/useLayout";
 import { PageContentContext } from "../../hooks/PageContentContext";
 import { pageFallbacks, pathToSlug, ctaFallback } from "../../data/pageFallbacks";
+import PageSeo from "../PageSeo";
 
 /** Static particle positions — avoids layout shift from random on every render */
 const PARTICLES = [
@@ -55,6 +56,7 @@ export default function Layout() {
 
   return (
     <PageContentContext.Provider value={{ ...page, footer: layout.footer }}>
+      <PageSeo />
       <div className="relative min-h-screen overflow-hidden bg-ink text-white">
 
         {/* ── Layer 1: Large ambient blobs (slow drift) ── */}

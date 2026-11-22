@@ -70,6 +70,22 @@ from `src/data/siteData.js`. When it is configured, the frontend waits for
 WordPress content before rendering and does not substitute fallback content if
 the API request fails.
 
+## SEO metadata
+
+The React app sets a title, meta description, canonical URL, robots directive,
+Open Graph tags, and Twitter tags for each route. It uses route-specific defaults
+and prefers Yoast's `yoast_head_json` when WordPress exposes it through REST.
+For Yoast values to match, create WordPress Pages with the same slugs as the
+React routes (`home`, `services`, `portfolio`, `about`, `pricing`, `blog`, and
+`contact`); blog articles use the matching WordPress post slug, and portfolio
+details use the matching project slug. If a matching entry or Yoast metadata is
+unavailable, the React route defaults are used.
+
+These tags are updated in the browser after the React app loads. For HTML
+metadata to be present in the initial response for crawlers and social preview
+bots that do not execute JavaScript, the frontend also needs server-side
+rendering or prerendering.
+
 ## Editing page content
 
 With the `vtech-core` WordPress plugin active, edit About, Pricing, and Contact

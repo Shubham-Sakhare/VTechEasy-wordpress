@@ -153,6 +153,23 @@ export function getVtechPage(slug) {
   return request(`/vtech/v1/page/${encodeURIComponent(slug)}`);
 }
 
+/** Get Yoast metadata for a matching WordPress page, post, or project. */
+export async function getYoastMetadata(type, slug) {
+  const routeByType = {
+    page: "/wp/v2/pages",
+    post: "/wp/v2/posts",
+    project: "/wp/v2/project",
+  };
+  const route = routeByType[type];
+  if (!route || !slug) return null;
+
+  const entries = await request(route, {
+    params: { slug, _fields: "yoast_head_json" },
+  });
+  const metadata = Array.isArray(entries) ? entries[0]?.yoast_head_json : null;
+  return metadata && typeof metadata === "object" ? metadata : null;
+}
+
 // ── Standard WordPress REST helpers ──────────────────────────
 
 export function getPosts({ perPage = 6, page = 1 } = {}) {
