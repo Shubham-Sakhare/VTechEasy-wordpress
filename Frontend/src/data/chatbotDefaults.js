@@ -1,11 +1,63 @@
 export const chatbotDefaults = {
   welcome: "Hi! 👋 I'm the Tech Easy assistant. How can I help you today?",
   quick_questions: [
-    { label: "Web Development", question: "What services do you offer?", action: "question" },
-    { label: "Mobile App", question: "Do you build mobile apps for Android or iOS?", action: "question" },
-    { label: "UI/UX Design", question: "Tell me about your services.", action: "question" },
-    { label: "Pricing", question: "How much does a project cost?", action: "question" },
-    { label: "Project Timeline", question: "How long does it take to build a website?", action: "question" },
+    {
+      label: "Web Development",
+      action: "flow",
+      intro: "What would you like to know about Web Development?",
+      options: [
+        { label: "Business websites", answer: "We build modern, responsive websites for businesses, with a focus on clear content and a smooth user experience.", kind: "answer", link_label: "Explore Services", link_url: "/services" },
+        { label: "E-commerce websites", answer: "We can help plan and build an online store around your products and business requirements. Share what you need and our team will recommend an approach.", kind: "answer", link_label: "", link_url: "" },
+        { label: "Web applications", answer: "We build custom web applications based on your workflow, features and user requirements.", kind: "answer", link_label: "", link_url: "" },
+        { label: "Redesign my website", answer: "Absolutely. We handle redesign, speed optimization and SEO improvements. Please share your website link.", kind: "answer", link_label: "", link_url: "" },
+        { label: "Other", answer: "Please tell us what you have in mind. Our team can help with a custom web development request.", kind: "other", link_label: "", link_url: "" },
+      ],
+    },
+    {
+      label: "Mobile App",
+      action: "flow",
+      intro: "What would you like to know about Mobile App Development?",
+      options: [
+        { label: "Android app", answer: "Yes, we build Android apps based on your features, users and business requirements.", kind: "answer", link_label: "", link_url: "" },
+        { label: "iOS app", answer: "Yes, we build iOS apps for iPhone and iPad based on your project requirements.", kind: "answer", link_label: "", link_url: "" },
+        { label: "Cross-platform app", answer: "We also build cross-platform apps to help save development time and cost.", kind: "answer", link_label: "", link_url: "" },
+        { label: "App support and updates", answer: "Yes, we provide ongoing support, updates and maintenance after launch.", kind: "answer", link_label: "", link_url: "" },
+        { label: "Other", answer: "Please tell us about the app you have in mind. Our team will help you plan the next steps.", kind: "other", link_label: "", link_url: "" },
+      ],
+    },
+    {
+      label: "UI/UX Design",
+      action: "flow",
+      intro: "What would you like to know about UI/UX Design?",
+      options: [
+        { label: "Website design", answer: "We design clear, responsive website experiences that help visitors find information and take action.", kind: "answer", link_label: "Explore Services", link_url: "/services" },
+        { label: "Mobile app design", answer: "We design mobile app experiences around your users, features and product goals.", kind: "answer", link_label: "", link_url: "" },
+        { label: "Redesign an existing product", answer: "We can review your existing site or app and redesign its user experience and interface.", kind: "answer", link_label: "", link_url: "" },
+        { label: "Other", answer: "Please tell us what you would like designed. Our team can discuss the right approach.", kind: "other", link_label: "", link_url: "" },
+      ],
+    },
+    {
+      label: "Pricing",
+      action: "flow",
+      intro: "What would you like to know about project pricing?",
+      options: [
+        { label: "Website cost", answer: "Website cost depends on the number of pages, features and design. Share your requirements and our team will send you a free quote.", kind: "answer", link_label: "View Pricing", link_url: "/pricing" },
+        { label: "Mobile app cost", answer: "App cost depends on the platforms, features and integrations you need. Our team can prepare a free quote after understanding your requirements.", kind: "answer", link_label: "", link_url: "" },
+        { label: "Request a free quote", answer: "Sure. Tell us a little about your project and our team will prepare a free quote.", kind: "answer", link_label: "", link_url: "" },
+        { label: "Other", answer: "Tell us what you would like priced and our team will guide you.", kind: "other", link_label: "", link_url: "" },
+      ],
+    },
+    {
+      label: "Project Timeline",
+      action: "flow",
+      intro: "What type of project timeline would you like to know about?",
+      options: [
+        { label: "Small website", answer: "A small website takes about 1-2 weeks. The exact timeline depends on your requirements.", kind: "answer", link_label: "", link_url: "" },
+        { label: "Larger website", answer: "Larger websites take about 4-8 weeks. The exact timeline depends on scope and requirements.", kind: "answer", link_label: "", link_url: "" },
+        { label: "Mobile app", answer: "Mobile app timelines depend on the platforms, features and integrations. Share your idea and our team will confirm an estimate.", kind: "answer", link_label: "", link_url: "" },
+        { label: "Other", answer: "Tell us what you are planning and our team can help estimate the timeline.", kind: "other", link_label: "", link_url: "" },
+      ],
+    },
     { label: "Talk to Our Team", question: "", action: "contact" },
   ],
   faqs: [

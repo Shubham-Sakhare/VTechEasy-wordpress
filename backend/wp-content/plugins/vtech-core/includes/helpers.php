@@ -27,6 +27,7 @@ function vtech_get_content() {
 	}
 
 	$content = wp_parse_args( $content, $defaults );
+	$content['chatbot'] = vtech_chatbot_resolve_config( $content['chatbot'] );
 
 	// Ensure each registered section resolves even if stored partially.
 	if ( class_exists( 'VTech_Sections' ) ) {
@@ -482,12 +483,64 @@ function vtech_chatbot_default_config() {
 	return array(
 		'welcome'         => "Hi! 👋 I'm the Tech Easy assistant. How can I help you today?",
 		'quick_questions' => array(
-			array( 'label' => 'Web Development', 'question' => 'What services do you offer?', 'action' => 'question' ),
-			array( 'label' => 'Mobile App', 'question' => 'Do you build mobile apps for Android or iOS?', 'action' => 'question' ),
-			array( 'label' => 'UI/UX Design', 'question' => 'Tell me about your services.', 'action' => 'question' ),
-			array( 'label' => 'Pricing', 'question' => 'How much does a project cost?', 'action' => 'question' ),
-			array( 'label' => 'Project Timeline', 'question' => 'How long does it take to build a website?', 'action' => 'question' ),
-			array( 'label' => 'Talk to Our Team', 'question' => '', 'action' => 'contact' ),
+			array(
+				'label'   => 'Web Development',
+				'action'  => 'flow',
+				'intro'   => 'What would you like to know about Web Development?',
+				'options' => array(
+					array( 'label' => 'Business websites', 'answer' => 'We build modern, responsive websites for businesses, with a focus on clear content and a smooth user experience.', 'kind' => 'answer', 'link_label' => 'Explore Services', 'link_url' => '/services' ),
+					array( 'label' => 'E-commerce websites', 'answer' => 'We can help plan and build an online store around your products and business requirements. Share what you need and our team will recommend an approach.', 'kind' => 'answer', 'link_label' => '', 'link_url' => '' ),
+					array( 'label' => 'Web applications', 'answer' => 'We build custom web applications based on your workflow, features and user requirements.', 'kind' => 'answer', 'link_label' => '', 'link_url' => '' ),
+					array( 'label' => 'Redesign my website', 'answer' => 'Absolutely. We handle redesign, speed optimization and SEO improvements. Please share your website link.', 'kind' => 'answer', 'link_label' => '', 'link_url' => '' ),
+					array( 'label' => 'Other', 'answer' => 'Please tell us what you have in mind. Our team can help with a custom web development request.', 'kind' => 'other', 'link_label' => '', 'link_url' => '' ),
+				),
+			),
+			array(
+				'label'   => 'Mobile App',
+				'action'  => 'flow',
+				'intro'   => 'What would you like to know about Mobile App Development?',
+				'options' => array(
+					array( 'label' => 'Android app', 'answer' => 'Yes, we build Android apps based on your features, users and business requirements.', 'kind' => 'answer', 'link_label' => '', 'link_url' => '' ),
+					array( 'label' => 'iOS app', 'answer' => 'Yes, we build iOS apps for iPhone and iPad based on your project requirements.', 'kind' => 'answer', 'link_label' => '', 'link_url' => '' ),
+					array( 'label' => 'Cross-platform app', 'answer' => 'We also build cross-platform apps to help save development time and cost.', 'kind' => 'answer', 'link_label' => '', 'link_url' => '' ),
+					array( 'label' => 'App support and updates', 'answer' => 'Yes, we provide ongoing support, updates and maintenance after launch.', 'kind' => 'answer', 'link_label' => '', 'link_url' => '' ),
+					array( 'label' => 'Other', 'answer' => 'Please tell us about the app you have in mind. Our team will help you plan the next steps.', 'kind' => 'other', 'link_label' => '', 'link_url' => '' ),
+				),
+			),
+			array(
+				'label'   => 'UI/UX Design',
+				'action'  => 'flow',
+				'intro'   => 'What would you like to know about UI/UX Design?',
+				'options' => array(
+					array( 'label' => 'Website design', 'answer' => 'We design clear, responsive website experiences that help visitors find information and take action.', 'kind' => 'answer', 'link_label' => 'Explore Services', 'link_url' => '/services' ),
+					array( 'label' => 'Mobile app design', 'answer' => 'We design mobile app experiences around your users, features and product goals.', 'kind' => 'answer', 'link_label' => '', 'link_url' => '' ),
+					array( 'label' => 'Redesign an existing product', 'answer' => 'We can review your existing site or app and redesign its user experience and interface.', 'kind' => 'answer', 'link_label' => '', 'link_url' => '' ),
+					array( 'label' => 'Other', 'answer' => 'Please tell us what you would like designed. Our team can discuss the right approach.', 'kind' => 'other', 'link_label' => '', 'link_url' => '' ),
+				),
+			),
+			array(
+				'label'   => 'Pricing',
+				'action'  => 'flow',
+				'intro'   => 'What would you like to know about project pricing?',
+				'options' => array(
+					array( 'label' => 'Website cost', 'answer' => 'Website cost depends on the number of pages, features and design. Share your requirements and our team will send you a free quote.', 'kind' => 'answer', 'link_label' => 'View Pricing', 'link_url' => '/pricing' ),
+					array( 'label' => 'Mobile app cost', 'answer' => 'App cost depends on the platforms, features and integrations you need. Our team can prepare a free quote after understanding your requirements.', 'kind' => 'answer', 'link_label' => '', 'link_url' => '' ),
+					array( 'label' => 'Request a free quote', 'answer' => 'Sure. Tell us a little about your project and our team will prepare a free quote.', 'kind' => 'answer', 'link_label' => '', 'link_url' => '' ),
+					array( 'label' => 'Other', 'answer' => 'Tell us what you would like priced and our team will guide you.', 'kind' => 'other', 'link_label' => '', 'link_url' => '' ),
+				),
+			),
+			array(
+				'label'   => 'Project Timeline',
+				'action'  => 'flow',
+				'intro'   => 'What type of project timeline would you like to know about?',
+				'options' => array(
+					array( 'label' => 'Small website', 'answer' => 'A small website takes about 1-2 weeks. The exact timeline depends on your requirements.', 'kind' => 'answer', 'link_label' => '', 'link_url' => '' ),
+					array( 'label' => 'Larger website', 'answer' => 'Larger websites take about 4-8 weeks. The exact timeline depends on scope and requirements.', 'kind' => 'answer', 'link_label' => '', 'link_url' => '' ),
+					array( 'label' => 'Mobile app', 'answer' => 'Mobile app timelines depend on the platforms, features and integrations. Share your idea and our team will confirm an estimate.', 'kind' => 'answer', 'link_label' => '', 'link_url' => '' ),
+					array( 'label' => 'Other', 'answer' => 'Tell us what you are planning and our team can help estimate the timeline.', 'kind' => 'other', 'link_label' => '', 'link_url' => '' ),
+				),
+			),
+			array( 'label' => 'Talk to Our Team', 'action' => 'contact', 'intro' => '', 'question' => '', 'options' => array() ),
 		),
 		'faqs'            => array(
 			array(
@@ -592,6 +645,82 @@ function vtech_chatbot_default_config() {
 			'redirect_url' => '/contact#contact-form',
 		),
 	);
+}
+
+/**
+ * Resolve stored chatbot settings and migrate legacy quick-question rows.
+ *
+ * @param mixed $stored Stored chatbot settings.
+ * @return array
+ */
+function vtech_chatbot_resolve_config( $stored ) {
+	$defaults = vtech_chatbot_default_config();
+	$stored   = is_array( $stored ) ? $stored : array();
+	$config   = wp_parse_args( $stored, $defaults );
+	$config['fallback']       = wp_parse_args( isset( $config['fallback'] ) && is_array( $config['fallback'] ) ? $config['fallback'] : array(), $defaults['fallback'] );
+	$config['contact_action'] = wp_parse_args( isset( $config['contact_action'] ) && is_array( $config['contact_action'] ) ? $config['contact_action'] : array(), $defaults['contact_action'] );
+
+	$quick_questions = isset( $config['quick_questions'] ) && is_array( $config['quick_questions'] ) ? $config['quick_questions'] : array();
+	$resolved        = array();
+	foreach ( $quick_questions as $item ) {
+		if ( ! is_array( $item ) || empty( $item['label'] ) ) {
+			continue;
+		}
+
+		$action = isset( $item['action'] ) ? $item['action'] : 'question';
+		if ( 'question' === $action && empty( $item['options'] ) ) {
+			foreach ( $defaults['quick_questions'] as $default_item ) {
+				if ( isset( $default_item['action'], $default_item['label'] ) && 'flow' === $default_item['action'] && 0 === strcasecmp( $item['label'], $default_item['label'] ) ) {
+					$item = array_merge( $default_item, array( 'label' => $item['label'] ) );
+					$action = 'flow';
+					break;
+				}
+			}
+		}
+
+		if ( 'flow' === $action ) {
+			$options = isset( $item['options'] ) && is_array( $item['options'] ) ? $item['options'] : array();
+			$answers = array();
+			$other   = null;
+			foreach ( $options as $option ) {
+				if ( ! is_array( $option ) || empty( $option['label'] ) || empty( $option['answer'] ) ) {
+					continue;
+				}
+				$option['kind'] = isset( $option['kind'] ) && 'other' === $option['kind'] ? 'other' : 'answer';
+				if ( 'other' === $option['kind'] ) {
+					if ( null === $other ) {
+						$other = $option;
+					}
+				} else {
+					$answers[] = $option;
+				}
+			}
+			if ( null === $other ) {
+				$other = array(
+					'label'      => 'Other',
+					'answer'     => 'Please tell us a little more about what you need. Our team can help with a custom request.',
+					'kind'       => 'other',
+					'link_label' => '',
+					'link_url'   => '',
+				);
+			}
+			$item['action']  = 'flow';
+			$item['intro']   = isset( $item['intro'] ) && is_string( $item['intro'] ) ? $item['intro'] : 'What would you like to know?';
+			$item['options'] = array_merge( $answers, array( $other ) );
+			$resolved[]      = $item;
+		} elseif ( 'contact' === $action ) {
+			$item['action']  = 'contact';
+			$item['options'] = array();
+			$resolved[]      = $item;
+		} else {
+			$item['action'] = 'question';
+			if ( ! empty( $item['question'] ) ) {
+				$resolved[] = $item;
+			}
+		}
+	}
+	$config['quick_questions'] = $resolved;
+	return $config;
 }
 
 /**
