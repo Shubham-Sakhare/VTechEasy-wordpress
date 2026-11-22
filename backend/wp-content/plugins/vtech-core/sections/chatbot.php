@@ -93,16 +93,64 @@ function vtech_save_chatbot() {
 				continue;
 			}
 			$label  = isset( $item['label'] ) ? sanitize_text_field( $item['label'] ) : '';
-			$action = isset( $item['action'] ) && 'contact' === $item['action'] ? 'contact' : 'question';
+			$action = isset( $item['action'] ) && in_array( $item['action'], array( 'flow', 'question', 'contact' ), true ) ? $item['action'] : 'question';
 			$query  = isset( $item['question'] ) ? sanitize_text_field( $item['question'] ) : '';
 			if ( '' === $label || ( 'question' === $action && '' === $query ) ) {
 				continue;
 			}
-			$data['quick_questions'][] = array(
+			$quick_item = array(
 				'label'    => $label,
 				'question' => $query,
 				'action'   => $action,
+				'intro'    => isset( $item['intro'] ) ? sanitize_textarea_field( $item['intro'] ) : '',
+				'options'  => array(),
 			);
+			if ( 'flow' === $action && ! empty( $item['options'] ) && is_array( $item['options'] ) ) {
+				$other_option = null;
+				foreach ( $item['options'] as $option ) {
+					if ( ! is_array( $option ) ) {
+						continue;
+					}
+					$option_label  = isset( $option['label'] ) ? sanitize_text_field( $option['label'] ) : '';
+					$option_answer = isset( $option['answer'] ) ? sanitize_textarea_field( $option['answer'] ) : '';
+					if ( '' === $option_label || '' === $option_answer ) {
+						continue;
+					}
+					$option_data = array(
+						'label'      => $option_label,
+						'answer'     => $option_answer,
+						'kind'       => isset( $option['kind'] ) && 'other' === $option['kind'] ? 'other' : 'answer',
+						'link_label' => isset( $option['link_label'] ) ? sanitize_text_field( $option['link_label'] ) : '',
+						'link_url'   => isset( $option['link_url'] ) ? vtech_chatbot_sanitize_link( $option['link_url'] ) : '',
+					);
+					if ( 'other' === $option_data['kind'] ) {
+						if ( null === $other_option ) {
+							$other_option = $option_data;
+						}
+					} else {
+						$quick_item['options'][] = $option_data;
+					}
+				}
+				if ( null === $other_option ) {
+					$other_option = array(
+						'label'      => 'Other',
+						'answer'     => 'Please tell us a little more about what you need. Our team can help with a custom request.',
+						'kind'       => 'other',
+						'link_label' => '',
+						'link_url'   => '',
+					);
+				}
+				$quick_item['options'][] = $other_option;
+			} elseif ( 'flow' === $action ) {
+				$quick_item['options'][] = array(
+					'label'      => 'Other',
+					'answer'     => 'Please tell us a little more about what you need. Our team can help with a custom request.',
+					'kind'       => 'other',
+					'link_label' => '',
+					'link_url'   => '',
+				);
+			}
+			$data['quick_questions'][] = $quick_item;
 		}
 	}
 
@@ -161,7 +209,17 @@ function vtech_save_chatbot() {
 	}
 
 	$contact_raw = isset( $raw['contact_action'] ) && is_array( $raw['contact_action'] ) ? $raw['contact_action'] : array();
-	$behavior    = isset( $contact_raw['behavior'] ) && 'redirect' === $contact_raw['behavior'] ? 'redirect' : 'chat_form';
+	if ( isset( $contact_raw['redirect_enabled'] ) || isset( $contact_raw['chat_form_enabled'] ) ) {
+		$redirect_enabled = ! empty( $contact_raw['redirect_enabled'] );
+		$form_enabled     = ! empty( $contact_raw['chat_form_enabled'] );
+		if ( $redirect_enabled && $form_enabled ) {
+			add_settings_error( 'vtech_chatbot', 'contact_mode_conflict', __( 'Turn on only one Contact behavior.', 'vtech-core' ), 'error' );
+			return;
+		}
+		$behavior = $redirect_enabled ? 'redirect' : 'chat_form';
+	} else {
+		$behavior = isset( $contact_raw['behavior'] ) && 'redirect' === $contact_raw['behavior'] ? 'redirect' : 'chat_form';
+	}
 	$redirect    = isset( $contact_raw['redirect_url'] ) ? vtech_chatbot_sanitize_link( $contact_raw['redirect_url'] ) : '';
 	if ( 'redirect' === $behavior && '' === $redirect ) {
 		add_settings_error( 'vtech_chatbot', 'redirect_required', __( 'Add a valid redirect URL or select the in-chat form option.', 'vtech-core' ), 'error' );
@@ -198,7 +256,7 @@ function vtech_render_chatbot_page() {
 	$content  = vtech_get_content();
 	$defaults = vtech_chatbot_default_config();
 	$stored_chatbot = isset( $content['chatbot'] ) && is_array( $content['chatbot'] ) ? $content['chatbot'] : array();
-	$chatbot        = wp_parse_args( $stored_chatbot, $defaults );
+	$chatbot        = vtech_chatbot_resolve_config( $stored_chatbot );
 	foreach ( array( 'welcome', 'handoff_keywords', 'off_topic_keywords' ) as $string_key ) {
 		if ( ! isset( $chatbot[ $string_key ] ) || ! is_string( $chatbot[ $string_key ] ) ) {
 			$chatbot[ $string_key ] = $defaults[ $string_key ];
@@ -237,7 +295,7 @@ function vtech_render_chatbot_page() {
 
 			<div class="vtech-panel">
 				<h2 class="vtech-panel-title">Quick Questions</h2>
-				<p class="vtech-hint">Add, edit, remove or reorder the buttons shown when the chat first opens. Choose whether a button asks a question or opens the chatbot contact form.</p>
+				<p class="vtech-hint">Add, edit, remove or reorder the buttons shown when the chat first opens. A guided flow shows its intro, answers one selected option at a time, and always places Other last. The Other option shows the configured Contact action.</p>
 				<div class="vtech-repeater" data-repeater="chatbot[quick_questions]">
 					<div class="vtech-repeater-items">
 						<?php foreach ( $chatbot['quick_questions'] as $i => $item ) { vtech_render_chatbot_quick_row( $i, $item ); } ?>
@@ -287,24 +345,46 @@ function vtech_render_chatbot_page() {
 
 			<div class="vtech-panel">
 				<h2 class="vtech-panel-title">Contact Icon</h2>
-				<p class="vtech-hint">Choose exactly one behavior: open the contact form inside this chat or redirect to the URL below.</p>
+				<p class="vtech-hint">Turn on exactly one option. Selecting one automatically turns the other off.</p>
 				<div class="vtech-grid-2">
 					<?php
 					VTech_Admin::text_field( 'chatbot[contact_action][label]', $chatbot['contact_action']['label'], 'Button label', 'Contact' );
 					VTech_Admin::icon_field( 'chatbot[contact_action][icon]', $chatbot['contact_action']['icon'], 'Button icon' );
-					VTech_Admin::select_field(
-						'chatbot[contact_action][behavior]',
-						$chatbot['contact_action']['behavior'],
-						'Contact behavior',
-						array(
-							'chat_form' => 'Open form inside chatbot',
-							'redirect'  => 'Redirect to URL',
-						)
-					);
-					VTech_Admin::text_field( 'chatbot[contact_action][redirect_url]', $chatbot['contact_action']['redirect_url'], 'Redirect URL', '/contact#contact-form' );
 					?>
 				</div>
-				<p class="vtech-hint">The redirect URL is used only when “Redirect to URL” is selected.</p>
+				<div class="vtech-grid-2 vtech-chatbot-contact-modes">
+					<label class="vtech-field vtech-toggle">
+						<span class="vtech-label">URL redirect</span>
+						<span class="vtech-switch">
+							<input
+								type="checkbox"
+								name="chatbot[contact_action][redirect_enabled]"
+								value="1"
+								class="vtech-chatbot-mode"
+								data-mode="redirect"
+								<?php checked( 'redirect', $chatbot['contact_action']['behavior'] ); ?>
+							/>
+							<span class="vtech-slider"></span>
+						</span>
+					</label>
+					<label class="vtech-field vtech-toggle">
+						<span class="vtech-label">Enquiry form in chat</span>
+						<span class="vtech-switch">
+							<input
+								type="checkbox"
+								name="chatbot[contact_action][chat_form_enabled]"
+								value="1"
+								class="vtech-chatbot-mode"
+								data-mode="chat_form"
+								<?php checked( 'chat_form', $chatbot['contact_action']['behavior'] ); ?>
+							/>
+							<span class="vtech-slider"></span>
+						</span>
+					</label>
+				</div>
+				<div class="vtech-chatbot-redirect-url" <?php echo 'redirect' === $chatbot['contact_action']['behavior'] ? '' : 'hidden'; ?>>
+					<?php VTech_Admin::text_field( 'chatbot[contact_action][redirect_url]', $chatbot['contact_action']['redirect_url'], 'Redirect URL', '/contact#contact-form' ); ?>
+				</div>
 			</div>
 
 			<?php submit_button( 'Save Chat Assistant' ); ?>
@@ -312,7 +392,10 @@ function vtech_render_chatbot_page() {
 	</div>
 
 	<script type="text/html" id="vtech-tmpl-chatbot-quick">
-		<?php vtech_render_chatbot_quick_row( '__INDEX__', array( 'label' => '', 'question' => '', 'action' => 'question' ) ); ?>
+		<?php vtech_render_chatbot_quick_row( '__INDEX__', array( 'label' => '', 'question' => '', 'action' => 'flow', 'intro' => '', 'options' => array() ) ); ?>
+	</script>
+	<script type="text/html" id="vtech-tmpl-chatbot-option">
+		<?php vtech_render_chatbot_option_row( '__INDEX__', '__CINDEX__', array( 'label' => '', 'answer' => '', 'kind' => 'answer', 'link_label' => '', 'link_url' => '' ) ); ?>
 	</script>
 	<script type="text/html" id="vtech-tmpl-chatbot-faq">
 		<?php vtech_render_chatbot_faq_row( '__INDEX__', array( 'question' => '', 'keywords' => '', 'answer' => '', 'link_label' => '', 'link_url' => '' ) ); ?>
@@ -349,16 +432,66 @@ function vtech_chatbot_textarea_field( $name, $value, $label, $rows = 3 ) {
  * @return void
  */
 function vtech_render_chatbot_quick_row( $i, $item ) {
-	$item = wp_parse_args( is_array( $item ) ? $item : array(), array( 'label' => '', 'question' => '', 'action' => 'question' ) );
+	$item = wp_parse_args( is_array( $item ) ? $item : array(), array( 'label' => '', 'question' => '', 'action' => 'flow', 'intro' => '', 'options' => array() ) );
 	?>
 	<div class="vtech-row vtech-col-row" data-row>
 		<span class="vtech-drag dashicons dashicons-menu"></span>
-		<div class="vtech-row-main vtech-grid-2">
+		<div class="vtech-row-main">
+			<div class="vtech-grid-2">
 			<?php
 			VTech_Admin::text_field( "chatbot[quick_questions][$i][label]", $item['label'], 'Button label' );
-			VTech_Admin::text_field( "chatbot[quick_questions][$i][question]", $item['question'], 'Question to ask' );
-			VTech_Admin::select_field( "chatbot[quick_questions][$i][action]", $item['action'], 'Button action', array( 'question' => 'Ask question', 'contact' => 'Open contact form' ) );
+			VTech_Admin::select_field( "chatbot[quick_questions][$i][action]", $item['action'], 'Button action', array( 'flow' => 'Show guided options', 'question' => 'Answer using FAQs', 'contact' => 'Open contact action' ) );
 			?>
+			</div>
+			<?php VTech_Admin::text_field( "chatbot[quick_questions][$i][question]", $item['question'], 'Question to match in FAQs (for Answer using FAQs)' ); ?>
+			<?php vtech_chatbot_textarea_field( "chatbot[quick_questions][$i][intro]", $item['intro'], 'Guided flow introduction', 2 ); ?>
+			<div class="vtech-sub-block">
+				<div class="vtech-sub-head">
+					<span>Guided options</span>
+					<button type="button" class="button-link vtech-add-sub" data-sub="chatbot-option" data-parent="<?php echo esc_attr( $i ); ?>">+ Add option</button>
+				</div>
+				<div class="vtech-sub-items" data-sub-items="<?php echo esc_attr( $i ); ?>">
+					<?php
+					if ( ! empty( $item['options'] ) && is_array( $item['options'] ) ) {
+						foreach ( $item['options'] as $ci => $option ) {
+							vtech_render_chatbot_option_row( $i, $ci, $option );
+						}
+					}
+					?>
+				</div>
+			</div>
+		</div>
+		<button type="button" class="vtech-remove dashicons dashicons-trash" title="Remove"></button>
+	</div>
+	<?php
+}
+
+/**
+ * Render an editable guided-chat option row.
+ *
+ * @param int|string $i  Parent row index.
+ * @param int|string $ci Option row index.
+ * @param array      $option Option content.
+ * @return void
+ */
+function vtech_render_chatbot_option_row( $i, $ci, $option ) {
+	$option = wp_parse_args( is_array( $option ) ? $option : array(), array( 'label' => '', 'answer' => '', 'kind' => 'answer', 'link_label' => '', 'link_url' => '' ) );
+	?>
+	<div class="vtech-row vtech-subrow" data-subrow>
+		<div class="vtech-row-main">
+			<div class="vtech-grid-2">
+				<?php
+				VTech_Admin::text_field( "chatbot[quick_questions][$i][options][$ci][label]", $option['label'], 'Option button label' );
+				VTech_Admin::select_field( "chatbot[quick_questions][$i][options][$ci][kind]", $option['kind'], 'Option type', array( 'answer' => 'Show answer and remaining options', 'other' => 'Other / Contact (always last)' ) );
+				?>
+			</div>
+			<?php vtech_chatbot_textarea_field( "chatbot[quick_questions][$i][options][$ci][answer]", $option['answer'], 'Bot answer', 2 ); ?>
+			<div class="vtech-grid-2">
+				<?php
+				VTech_Admin::text_field( "chatbot[quick_questions][$i][options][$ci][link_label]", $option['link_label'], 'Optional page link label' );
+				VTech_Admin::text_field( "chatbot[quick_questions][$i][options][$ci][link_url]", $option['link_url'], 'Optional page URL' );
+				?>
+			</div>
 		</div>
 		<button type="button" class="vtech-remove dashicons dashicons-trash" title="Remove"></button>
 	</div>

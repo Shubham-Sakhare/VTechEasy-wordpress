@@ -158,11 +158,18 @@ contact endpoint. Deploy the updated `vtech-core` plugin as well as the frontend
 existing per-IP submission rate limit.
 
 Edit the assistant in **WP Admin → VTech Layout → Chat Assistant**. The CMS
-supports CRUD and ordering for quick questions, FAQ answers, FAQ page links,
-post-enquiry icons and URLs, lead prompts, and fallback messages. The Contact
-action uses one exclusive behavior at a time: open the form in the chat or
-redirect to a configured URL. Chatbot content is served with the public
-`/vtech/v1/layout` response.
+supports CRUD and ordering for guided topics and their options, FAQ answers and
+page links, post-enquiry icons and URLs, lead prompts, and fallback messages.
+Each guided topic has an introduction and nested answer options. Choosing an
+answer shows the remaining options; an **Other / Contact** option is kept last
+and displays the configured Contact action. Each answer may also include a
+page link. Legacy quick-question settings are upgraded to the built-in guided
+topics when read.
+
+The Contact action uses mutually exclusive URL-redirect and in-chat-form
+toggles; enabling URL redirect reveals its destination field, while the form
+toggle opens the enquiry flow in the same chat window. Chatbot content is
+served with the public `/vtech/v1/layout` response.
 
 ## Images
 

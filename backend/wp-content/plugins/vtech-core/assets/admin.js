@@ -284,6 +284,21 @@
 			$( this ).closest( '.vtech-section-block' ).toggleClass( 'is-on', $( this ).is( ':checked' ) );
 		} );
 
+		$( document ).on( 'change', '.vtech-chatbot-mode', function () {
+			var $toggle = $( this );
+			var $group = $toggle.closest( '.vtech-chatbot-contact-modes' );
+			var $toggles = $group.find( '.vtech-chatbot-mode' );
+
+			if ( $toggle.is( ':checked' ) ) {
+				$toggles.not( this ).prop( 'checked', false );
+			} else if ( !$toggles.filter( ':checked' ).length ) {
+				$toggle.prop( 'checked', true );
+			}
+
+			var redirectEnabled = $group.find( '[data-mode="redirect"]' ).is( ':checked' );
+			$group.closest( '.vtech-panel' ).find( '.vtech-chatbot-redirect-url' ).prop( 'hidden', !redirectEnabled );
+		} );
+
 		/* ---------------- Collapse / expand section panel ---------------- */
 
 		function setSectionState( $panel, open ) {

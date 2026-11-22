@@ -15,6 +15,27 @@ const BRAND_ICONS = new Set([
   "facebook", "instagram", "linkedin", "telegram", "twitter", "whatsapp", "youtube",
 ]);
 
+function normalizeQuickQuestions(value) {
+  const items = Array.isArray(value) ? value : chatbotDefaults.quick_questions;
+  return items
+    .filter((item) => item && typeof item === "object" && item.label)
+    .map((item) => {
+      if (item.action !== "flow") return item;
+      const options = Array.isArray(item.options)
+        ? item.options.filter((option) => option && option.label && option.answer)
+        : [];
+      const answers = options.filter((option) => option.kind !== "other");
+      const other = options.find((option) => option.kind === "other") || {
+        label: "Other",
+        answer: "Please tell us a little more about what you need. Our team can help with a custom request.",
+        kind: "other",
+        link_label: "",
+        link_url: "",
+      };
+      return { ...item, options: [...answers, { ...other, kind: "other" }] };
+    });
+}
+
 function normalizeChatbot(value) {
   const saved = value && typeof value === "object" ? value : {};
   const prompts = Array.isArray(saved.lead_prompts) ? saved.lead_prompts : [];
@@ -26,9 +47,7 @@ function normalizeChatbot(value) {
     ...chatbotDefaults,
     ...saved,
     welcome: saved.welcome || chatbotDefaults.welcome,
-    quick_questions: Array.isArray(saved.quick_questions)
-      ? saved.quick_questions.filter((item) => item && typeof item === "object" && item.label)
-      : chatbotDefaults.quick_questions,
+    quick_questions: normalizeQuickQuestions(saved.quick_questions),
     faqs: Array.isArray(saved.faqs)
       ? saved.faqs.filter((faq) => faq && typeof faq === "object" && faq.question && faq.answer)
       : chatbotDefaults.faqs,
@@ -282,6 +301,41 @@ export default function ChatWidget() {
     });
   }
 
+  function handleQuickQuestion(item) {
+    if (item.action !== "flow") {
+      handleQuestion(item.question || item.label, item.action);
+      return;
+    }
+    if (isTyping || leadStep !== null) return;
+    addMessage("user", item.label);
+    setQuestion("");
+    replyAfterTyping(item.intro || `What would you like to know about ${item.label}?`, {
+      flowCategory: item,
+      flowOptions: item.options,
+    });
+  }
+
+  function handleFlowOption(messageId, category, option, options, selectedIndex) {
+    if (isTyping || leadStep !== null) return;
+    setMessages((current) => current.map((message) => (
+      message.id === messageId ? { ...message, flowOptions: [] } : message
+    )));
+    addMessage("user", option.label);
+    const link = option.link_url
+      ? { label: option.link_label || "Learn more", url: option.link_url }
+      : null;
+    if (option.kind === "other") {
+      replyAfterTyping(option.answer, { link, openLeadForm: true });
+      return;
+    }
+    const remainingOptions = options.filter((_, index) => index !== selectedIndex);
+    replyAfterTyping(option.answer, {
+      link,
+      flowCategory: category,
+      flowOptions: remainingOptions,
+    });
+  }
+
   async function submitLead() {
     if (!leadConsent || leadStatus.state === "sending") return;
     setLeadStatus({ state: "sending", message: "" });
@@ -358,6 +412,21 @@ export default function ChatWidget() {
                       {contactAction.label} <ConfigIcon name={contactAction.icon} className="h-3.5 w-3.5" />
                     </button>
                   )}
+                  {message.flowOptions?.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {message.flowOptions.map((option, index) => (
+                        <button
+                          key={`${option.label}-${index}`}
+                          type="button"
+                          disabled={isTyping || leadStep !== null}
+                          onClick={() => handleFlowOption(message.id, message.flowCategory, option, message.flowOptions, index)}
+                          className="rounded-full border border-white/15 px-3 py-1.5 text-left text-xs text-white/80 hover:border-brand-cyan/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -376,7 +445,8 @@ export default function ChatWidget() {
                   <button
                     key={`${item.label}-${index}`}
                     type="button"
-                    onClick={() => handleQuestion(item.question || item.label, item.action)}
+                    disabled={isTyping}
+                    onClick={() => handleQuickQuestion(item)}
                     className="rounded-full border border-white/10 px-3 py-1.5 text-left text-xs text-white/80 hover:border-brand-cyan/50 hover:text-white"
                   >
                     {item.label}
