@@ -65,6 +65,7 @@ function resolvePage(pathname, sections) {
     return {
       title: "VTechEasy (Tech Easy) | Web & Mobile App Development",
       description: PAGE_SEO["/"].description,
+      robots: "noindex,follow",
       item: null,
     };
   }
@@ -89,6 +90,7 @@ function resolvePage(pathname, sections) {
     slug,
     title: `${title} | VTechEasy`,
     description,
+    robots: item ? undefined : "noindex,follow",
     image: item?.image || "",
     item,
     kind,
@@ -162,7 +164,7 @@ export default function PageSeo() {
   const twitterImage = Array.isArray(yoast?.twitter_image)
     ? yoast.twitter_image[0]?.url
     : yoast?.twitter_image;
-  const robots = yoastRobots(yoast?.robots) || "index,follow";
+  const robots = yoastRobots(yoast?.robots) || page.robots || "index,follow";
 
   useEffect(() => {
     const canonicalUrl = `${window.location.origin}${normalizedPath}`;

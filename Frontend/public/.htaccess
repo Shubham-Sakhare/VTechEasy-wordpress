@@ -1,6 +1,7 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
+  RewriteRule ^sitemap\.xml$ /backend/?rest_route=/vtech/v1/sitemap [QSA,L]
   RewriteRule ^backend(/|$) - [L]
   RewriteRule ^index\.html$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f

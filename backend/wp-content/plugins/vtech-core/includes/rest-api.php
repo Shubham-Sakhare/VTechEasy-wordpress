@@ -32,6 +32,16 @@ add_action( 'rest_api_init', function () {
 
 	register_rest_route(
 		'vtech/v1',
+		'/sitemap',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'vtech_rest_sitemap',
+			'permission_callback' => '__return_true',
+		)
+	);
+
+	register_rest_route(
+		'vtech/v1',
 		'/page/(?P<slug>[a-z0-9\-]+)',
 		array(
 			'methods'             => WP_REST_Server::READABLE,
@@ -109,12 +119,98 @@ function vtech_rest_layout() {
 	$content = vtech_get_content();
 
 	$response = array(
-		'header' => isset( $content['header'] ) ? $content['header'] : array(),
-		'footer' => isset( $content['footer'] ) ? $content['footer'] : array(),
+		'header'  => isset( $content['header'] ) ? $content['header'] : array(),
+		'footer'  => isset( $content['footer'] ) ? $content['footer'] : array(),
+		'chatbot' => isset( $content['chatbot'] ) ? $content['chatbot'] : vtech_chatbot_default_config(),
 	);
 
 	return rest_ensure_response( $response );
 }
+
+/**
+ * Generate a sitemap using the current frontend routes and published content.
+ *
+ * @return WP_REST_Response
+ */
+function vtech_rest_sitemap() {
+	$settings = vtech_core_settings();
+	$base_url = ! empty( $settings['frontend_origin'] ) ? $settings['frontend_origin'] : home_url( '/' );
+	$parts    = wp_parse_url( $base_url );
+	$origin   = '';
+	if ( is_array( $parts ) && ! empty( $parts['scheme'] ) && ! empty( $parts['host'] ) ) {
+		$origin = strtolower( $parts['scheme'] ) . '://' . strtolower( $parts['host'] );
+		if ( isset( $parts['port'] ) ) {
+			$origin .= ':' . (int) $parts['port'];
+		}
+	}
+
+	if ( '' === $origin ) {
+		return new WP_Error( 'vtech_sitemap_origin_missing', 'The frontend origin is not configured.', array( 'status' => 503 ) );
+	}
+
+	$urls = array();
+	foreach ( VTech_Pages::all() as $page ) {
+		$path = isset( $page['path'] ) ? wp_parse_url( $page['path'], PHP_URL_PATH ) : '';
+		$path = is_string( $path ) && '' !== $path ? '/' . ltrim( $path, '/' ) : '/';
+		$path = '/' === $path ? '/' : untrailingslashit( $path );
+		$urls[ $origin . $path ] = true;
+	}
+
+	$dynamic_routes = array(
+		array( 'id' => 'services', 'list' => 'items', 'prefix' => '/services/', 'published_only' => false ),
+		array( 'id' => 'projects', 'list' => 'items', 'prefix' => '/portfolio/', 'published_only' => false ),
+		array( 'id' => 'blog_content', 'list' => 'posts', 'prefix' => '/blog/', 'published_only' => true ),
+	);
+
+	foreach ( $dynamic_routes as $route ) {
+		$section = vtech_get_section_content( $route['id'] );
+		$items   = isset( $section[ $route['list'] ] ) && is_array( $section[ $route['list'] ] )
+			? $section[ $route['list'] ]
+			: array();
+		foreach ( $items as $item ) {
+			if ( ! is_array( $item ) || ( $route['published_only'] && isset( $item['published'] ) && empty( $item['published'] ) ) ) {
+				continue;
+			}
+			$slug_source = isset( $item['slug'] ) && '' !== trim( (string) $item['slug'] )
+				? $item['slug']
+				: ( isset( $item['title'] ) ? $item['title'] : '' );
+			$slug = sanitize_title( $slug_source );
+			if ( '' !== $slug ) {
+				$urls[ $origin . $route['prefix'] . rawurlencode( $slug ) ] = true;
+			}
+		}
+	}
+
+	$xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+	$xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+	foreach ( array_keys( $urls ) as $url ) {
+		$xml .= "\t<url><loc>" . esc_xml( $url ) . "</loc></url>\n";
+	}
+	$xml .= "</urlset>\n";
+
+	return new WP_REST_Response( $xml );
+}
+
+/**
+ * Serve the sitemap response as XML instead of JSON-encoding the XML string.
+ *
+ * @param bool             $served Whether the response was served already.
+ * @param WP_REST_Response $result Response object.
+ * @param WP_REST_Request  $request Request object.
+ * @param WP_REST_Server   $server REST server.
+ * @return bool
+ */
+function vtech_rest_serve_sitemap_xml( $served, $result, $request, $server ) {
+	if ( ! ( $request instanceof WP_REST_Request ) || '/vtech/v1/sitemap' !== $request->get_route() ||
+		! ( $result instanceof WP_REST_Response ) || ! is_string( $result->get_data() ) ) {
+		return $served;
+	}
+
+	header( 'Content-Type: application/xml; charset=UTF-8' );
+	echo $result->get_data(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	return true;
+}
+add_filter( 'rest_pre_serve_request', 'vtech_rest_serve_sitemap_xml', 10, 4 );
 
 /**
  * Allow the Vite dev server and configured deployed frontend to call VTech.

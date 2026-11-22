@@ -9,6 +9,7 @@ import { useLayout } from "../../hooks/useLayout";
 import { PageContentContext } from "../../hooks/PageContentContext";
 import { pageFallbacks, pathToSlug, ctaFallback } from "../../data/pageFallbacks";
 import PageSeo from "../PageSeo";
+import ChatWidget from "../ChatWidget";
 
 /** Static particle positions — avoids layout shift from random on every render */
 const PARTICLES = [
@@ -31,7 +32,8 @@ export default function Layout() {
   const slug = pathToSlug(pathname);
   const fallback = pageFallbacks[slug] || { hero: null, sections: [] };
 
-  const page = usePageContent(slug, fallback);
+  const knownPage = Object.prototype.hasOwnProperty.call(pageFallbacks, slug);
+  const page = usePageContent(knownPage ? slug : "", fallback);
   const layout = useLayout();
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export default function Layout() {
   const contentWarning = page.error || layout.error;
 
   return (
-    <PageContentContext.Provider value={{ ...page, footer: layout.footer }}>
+    <PageContentContext.Provider value={{ ...page, footer: layout.footer, chatbot: layout.chatbot }}>
       <PageSeo />
       <div className="relative min-h-screen overflow-hidden bg-ink text-white">
 
@@ -140,6 +142,7 @@ export default function Layout() {
 
         {ctaData && <FooterCta data={ctaData} />}
         <VFooter />
+        <ChatWidget />
       </div>
     </PageContentContext.Provider>
   );

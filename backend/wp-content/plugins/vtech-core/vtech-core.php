@@ -33,6 +33,7 @@ require_once VTECH_CORE_DIR . 'includes/forms.php';
 // Each section lives in its own file and registers its own admin screen.
 require_once VTECH_CORE_DIR . 'sections/header.php';
 require_once VTECH_CORE_DIR . 'sections/footer.php';
+require_once VTECH_CORE_DIR . 'sections/chatbot.php';
 
 // Section registry definitions (heroes + reusable sections).
 require_once VTECH_CORE_DIR . 'sections/registry.php';
