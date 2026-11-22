@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /backend/wp-admin/
+
+Sitemap: https://vtecheasy.great-site.net/sitemap.xml
