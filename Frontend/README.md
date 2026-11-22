@@ -86,6 +86,13 @@ metadata to be present in the initial response for crawlers and social preview
 bots that do not execute JavaScript, the frontend also needs server-side
 rendering or prerendering.
 
+The static shell includes Organization and WebSite structured data for the
+Tech Easy brand and its VTechEasy aliases, plus `robots.txt` and a sitemap for
+the main routes. Update the domain in `index.html`, `public/robots.txt`, and
+`public/sitemap.xml` if the production domain changes. Submit the sitemap URL
+in Google Search Console after deployment. Search rankings are determined by
+search engines and cannot be guaranteed by metadata or structured data alone.
+
 ## Editing page content
 
 With the `vtech-core` WordPress plugin active, edit About, Pricing, and Contact

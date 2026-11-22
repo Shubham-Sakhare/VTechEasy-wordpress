@@ -8,49 +8,49 @@ const PAGE_SEO = {
   "/": {
     entity: "page",
     slug: "home",
-    title: "Tech Easy | Web & Mobile App Development Company in Hyderabad",
+    title: "VTechEasy (Tech Easy) | Websites & Mobile Apps",
     description:
-      "Tech Easy builds fast, modern websites, mobile apps and UI/UX designs in Hyderabad. Turn your ideas into digital success. Get a free consultation today!",
+      "VTechEasy, also known as Tech Easy, builds modern websites, mobile apps and UI/UX designs in Hyderabad. Get a free consultation for your project.",
   },
   "/services": {
     entity: "page",
     slug: "services",
-    title: "Web, Mobile App & UI/UX Services | Tech Easy",
+    title: "Web, Mobile App & UI/UX Services | VTechEasy",
     description:
       "Explore Tech Easy services, including web development, mobile apps, UI/UX design, cloud solutions and custom software.",
   },
   "/portfolio": {
     entity: "page",
     slug: "portfolio",
-    title: "Our Projects & Portfolio | Tech Easy",
+    title: "Our Projects & Portfolio | VTechEasy",
     description:
       "Explore websites, mobile apps and digital products designed and developed by the Tech Easy team.",
   },
   "/about": {
     entity: "page",
     slug: "about",
-    title: "About Tech Easy | Digital Solutions Team",
+    title: "About Tech Easy | VTechEasy",
     description:
       "Meet Tech Easy, a digital solutions team building modern websites, mobile apps and software for businesses.",
   },
   "/pricing": {
     entity: "page",
     slug: "pricing",
-    title: "Website & App Development Pricing | Tech Easy",
+    title: "Website & App Development Pricing | VTechEasy",
     description:
       "Explore Tech Easy project packages and find a web, mobile app or custom software solution for your business.",
   },
   "/blog": {
     entity: "page",
     slug: "blog",
-    title: "Technology & Digital Insights | Tech Easy Blog",
+    title: "Technology & Digital Insights | VTechEasy Blog",
     description:
       "Read the latest Tech Easy insights on web development, mobile apps, UI/UX design and digital growth.",
   },
   "/contact": {
     entity: "page",
     slug: "contact",
-    title: "Contact Tech Easy | Get a Free Consultation",
+    title: "Contact VTechEasy | Get a Free Consultation",
     description:
       "Contact Tech Easy about your website, mobile app or software project. Tell us what you need and our team will be in touch.",
   },
@@ -63,7 +63,7 @@ function resolvePage(pathname, sections) {
   const match = pathname.match(/^\/(services|portfolio|blog)\/([^/]+)\/?$/);
   if (!match) {
     return {
-      title: "Tech Easy | Web & Mobile App Development",
+      title: "VTechEasy (Tech Easy) | Web & Mobile App Development",
       description: PAGE_SEO["/"].description,
       item: null,
     };
@@ -87,7 +87,7 @@ function resolvePage(pathname, sections) {
   return {
     entity: kind === "blog" ? "post" : kind === "portfolio" ? "project" : "page",
     slug,
-    title: `${title} | Tech Easy`,
+    title: `${title} | VTechEasy`,
     description,
     image: item?.image || "",
     item,
