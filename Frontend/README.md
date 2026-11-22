@@ -140,36 +140,26 @@ per-IP rate limiting; production deployments should also use HTTPS.
 
 ## Chat assistant
 
-The floating assistant gives rule-based answers about services, project
-timelines, pricing, apps, redesign, support, the portfolio, location, SEO, and
-privacy. It is not a generative AI and has no per-message AI API cost. Visitors
-can start a project enquiry; the assistant collects their name, project type,
-one contact method (phone or email), and requirements/timeline one question at
-a time. The chatbot asks for consent before sending the enquiry to the
-configured WordPress notification email. After a send attempt, three options
-appear whether email delivery succeeds or fails: WhatsApp opens a prefilled
-message for the visitor to review and send, Instagram opens the Tech Easy
-profile, and Contact opens the enquiry flow in the chat again. The site does
-not send WhatsApp messages automatically.
+The floating assistant is rule-based and does not call an external AI service.
+Its guided topics, nested answers, related questions, lead prompts, fallbacks
+and contact links come from the separate **Tech Easy Chat Assistant** WordPress
+plugin. The plugin also stores leads, sends notifications and optionally posts
+them to a configured webhook.
 
-The chatbot lead submission uses the `chat_assistant` mode of the WordPress
-contact endpoint. Deploy the updated `vtech-core` plugin as well as the frontend
-`dist/` files for this flow to work on the live site. The endpoint applies the
-existing per-IP submission rate limit.
+Install and configure the plugin in
+`backend/wp-content/plugins/techeasy-chat-assistant/`. Set
+`VITE_WP_API_URL` to the WordPress site root, then add the exact React frontend
+origin to **WP Admin → Chat Assistant → Settings → Allowed React frontend
+origins**. The React widget uses the plugin's
+`/techeasy-chat/v1/config` and `/techeasy-chat/v1/leads` REST routes. The
+plugin also provides the `[techeasy_chat]` shortcode for WordPress pages; do
+not use the shortcode on a page that already mounts the React widget.
 
-Edit the assistant in **WP Admin → VTech Layout → Chat Assistant**. The CMS
-supports CRUD and ordering for guided topics and their options, FAQ answers and
-page links, post-enquiry icons and URLs, lead prompts, and fallback messages.
-Each guided topic has an introduction and nested answer options. Choosing an
-answer shows the remaining options; an **Other / Contact** option is kept last
-and displays the configured Contact action. Each answer may also include a
-page link. Legacy quick-question settings are upgraded to the built-in guided
-topics when read.
-
-The Contact action uses mutually exclusive URL-redirect and in-chat-form
-toggles; enabling URL redirect reveals its destination field, while the form
-toggle opens the enquiry flow in the same chat window. Chatbot content is
-served with the public `/vtech/v1/layout` response.
+The form collects service, name, email, mobile, interest and an optional
+message. Leads are rate-limited to five submissions per IP per hour and
+include a honeypot. WhatsApp opens a link for the visitor; the site does not
+send WhatsApp messages automatically. See the plugin's README for installation,
+configuration and flow tests.
 
 ## Images
 

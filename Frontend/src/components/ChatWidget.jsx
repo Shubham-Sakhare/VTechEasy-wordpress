@@ -1,609 +1,646 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { submitContactForm } from "../api/wordpress";
-import { chatbotDefaults } from "../data/chatbotDefaults";
-import { usePageContext } from "../hooks/PageContentContext";
+import { Link } from "react-router-dom";
 import Icon from "./ui/Icon";
 import DynIcon from "./ui/DynIcon";
 
-const STOP_WORDS = new Set([
-  "about", "after", "and", "are", "can", "does", "for", "how", "is", "it",
-  "my", "our", "the", "this", "what", "when", "where", "which", "with",
-  "you", "your",
-]);
-const BRAND_ICONS = new Set([
-  "facebook", "instagram", "linkedin", "telegram", "twitter", "whatsapp", "youtube",
-]);
+const RAW_API_BASE = (import.meta.env.VITE_WP_API_URL || "").replace(/\/+$/, "").replace(/\/wp-json$/, "");
+const REST_MODE = String(import.meta.env.VITE_WP_REST_MODE || "query").toLowerCase();
+const API_BASE = import.meta.env.DEV && RAW_API_BASE ? "/wp-proxy" : RAW_API_BASE;
+const STORAGE_KEY = "techeasy-guided-chat-v1";
+const INTERESTS = ["Price", "Services", "Timeline", "Support", "Other"];
+const EMPTY_LEAD = { service: "", name: "", email: "", mobile: "", interest: "", message: "" };
+const DEFAULT_CONFIG = {
+  welcome: "Hi! 👋 I'm the Tech Easy AI assistant. How can I help you today?",
+  bot_name: "Tech Easy Assistant",
+  avatar: "",
+  primary_color: "#2563eb",
+  position: "right",
+  quick_questions: [],
+  faqs: [],
+  lead_questions: {
+    service: "Which service are you interested in?",
+    name: "May I know your name?",
+    email: "What is your email address?",
+    mobile: "What is your mobile number?",
+    interest: "What do you want to know about?",
+    message: "Please share a short message about your project. This is optional.",
+  },
+  fallback: "I'm not sure about that. Please share your details and our team will contact you shortly.",
+  actions: [
+    { id: "whatsapp", icon: "whatsapp", label: "WhatsApp", url: "https://wa.me/919096337434" },
+    { id: "instagram", icon: "instagram", label: "Instagram", url: "https://www.instagram.com/vtecheasy/?hl=en" },
+    { id: "contact", icon: "contact", label: "Contact", url: "/contact#contact-form" },
+  ],
+};
 
-function normalizeQuickQuestions(value) {
-  const items = Array.isArray(value) ? value : chatbotDefaults.quick_questions;
-  return items
-    .filter((item) => item && typeof item === "object" && item.label)
-    .map((item) => {
-      if (item.action !== "flow") return item;
-      const options = Array.isArray(item.options)
-        ? item.options.filter((option) => option && option.label && option.answer)
-        : [];
-      const answers = options.filter((option) => option.kind !== "other");
-      const other = options.find((option) => option.kind === "other") || {
-        label: "Other",
-        answer: "Please tell us a little more about what you need. Our team can help with a custom request.",
-        kind: "other",
-        link_label: "",
-        link_url: "",
-      };
-      return { ...item, options: [...answers, { ...other, kind: "other" }] };
-    });
+function apiUrl(route) {
+  const base = API_BASE || window.location.origin;
+  const path = `/techeasy-chat/v1/${route}`;
+  if (REST_MODE === "path") return `${base}/wp-json${path}`;
+  const url = new URL(`${base}/`, base.startsWith("/") ? window.location.origin : undefined);
+  url.searchParams.set("rest_route", path);
+  return url.toString();
 }
 
-function normalizeChatbot(value) {
+function normalizeConfig(value) {
   const saved = value && typeof value === "object" ? value : {};
-  const prompts = Array.isArray(saved.lead_prompts) ? saved.lead_prompts : [];
-  const savedContact = saved.contact_action && typeof saved.contact_action === "object"
-    ? saved.contact_action
-    : {};
-
   return {
-    ...chatbotDefaults,
+    ...DEFAULT_CONFIG,
     ...saved,
-    welcome: saved.welcome || chatbotDefaults.welcome,
-    quick_questions: normalizeQuickQuestions(saved.quick_questions),
-    faqs: Array.isArray(saved.faqs)
-      ? saved.faqs.filter((faq) => faq && typeof faq === "object" && faq.question && faq.answer)
-      : chatbotDefaults.faqs,
-    lead_prompts: chatbotDefaults.lead_prompts.map((prompt, index) => prompts[index] || prompt),
-    fallback: { ...chatbotDefaults.fallback, ...(saved.fallback || {}) },
-    handoff_keywords: saved.handoff_keywords || chatbotDefaults.handoff_keywords,
-    off_topic_keywords: saved.off_topic_keywords || chatbotDefaults.off_topic_keywords,
-    actions: Array.isArray(saved.actions)
-      ? saved.actions.filter((action) => action && typeof action === "object")
-      : chatbotDefaults.actions,
-    contact_action: {
-      ...chatbotDefaults.contact_action,
-      ...savedContact,
-      behavior: savedContact.behavior === "redirect" ? "redirect" : "chat_form",
-      label: savedContact.label || chatbotDefaults.contact_action.label,
-      icon: savedContact.icon || chatbotDefaults.contact_action.icon,
-      redirect_url: savedContact.redirect_url || chatbotDefaults.contact_action.redirect_url,
-    },
+    quick_questions: Array.isArray(saved.quick_questions) ? saved.quick_questions : [],
+    faqs: Array.isArray(saved.faqs) ? saved.faqs : [],
+    lead_questions: { ...DEFAULT_CONFIG.lead_questions, ...(saved.lead_questions || {}) },
+    actions: Array.isArray(saved.actions) ? saved.actions : DEFAULT_CONFIG.actions,
   };
 }
 
-function tokens(value) {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .split(/\s+/)
-    .filter((word) => word.length > 2 && !STOP_WORDS.has(word));
-}
-
-function matchesKeywordList(query, value) {
-  return String(value || "")
-    .split(/[,\n]/)
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean)
-    .some((keyword) => query.includes(keyword));
-}
-
-function makeReply(question, chatbot) {
-  const query = question.trim().toLowerCase();
-  if (matchesKeywordList(query, chatbot.handoff_keywords)) {
-    return { text: chatbot.fallback.human, openLeadForm: true };
+function ConfigIcon({ action }) {
+  if (action.icon_url) {
+    return <img src={action.icon_url} alt="" aria-hidden="true" className="h-5 w-5 object-contain" />;
   }
-
-  const queryTokens = new Set(tokens(question));
-  let bestFaq = null;
-  let bestScore = 0;
-  for (const faq of chatbot.faqs) {
-    const questionTokens = new Set(tokens(faq.question));
-    const keywords = new Set(tokens(faq.keywords));
-    let score = 0;
-    for (const token of queryTokens) {
-      if (questionTokens.has(token)) score += 2;
-      else if (keywords.has(token)) score += 1;
-    }
-    if (score > bestScore) {
-      bestFaq = faq;
-      bestScore = score;
-    }
+  if (action.icon === "whatsapp" || action.icon === "instagram" || action.icon === "contact") {
+    return <Icon name={action.icon === "contact" ? "mail" : action.icon} className="h-5 w-5" />;
   }
-
-  if (bestFaq && bestScore > 0) {
-    const link = bestFaq.link_url
-      ? { label: bestFaq.link_label || "Learn more", url: bestFaq.link_url }
-      : null;
-    return {
-      text: bestFaq.answer,
-      link,
-      openLeadForm: true,
-    };
-  }
-
-  if (matchesKeywordList(query, chatbot.off_topic_keywords)) {
-    return { text: chatbot.fallback.off_topic };
-  }
-  return { text: chatbot.fallback.unknown, openLeadForm: true };
-}
-
-function getActionUrl(action, lead) {
-  const url = String(action.url || "");
-  const isWhatsApp = /whatsapp/i.test(`${action.label || ""} ${action.icon || ""}`);
-  if (!isWhatsApp || !lead || !/^https:\/\/(wa\.me|api\.whatsapp\.com)\//i.test(url) || /[?&]text=/i.test(url)) {
-    return url;
-  }
-  const message = `Hi, I just submitted an enquiry to Tech Easy.\nName: ${lead.name}\nProject: ${lead.project}\nContact: ${lead.contact}\nRequirements: ${lead.details}`;
-  return `${url}${url.includes("?") ? "&" : "?"}text=${encodeURIComponent(message)}`;
-}
-
-function ConfigIcon({ name, className = "" }) {
-  if (!name) return <Icon name="link" className={className} />;
-  if (/^(https?:\/\/|\/)/i.test(name)) {
-    return <img src={name} alt="" aria-hidden="true" className={`h-5 w-5 object-contain ${className}`} />;
-  }
-  if (BRAND_ICONS.has(name)) return <Icon name={name} className={className} />;
-  return <DynIcon name={name} className={className} />;
-}
-
-function isInternalUrl(url) {
-  return typeof url === "string" && (url.startsWith("/") || url.startsWith("#"));
-}
-
-function isNewTabUrl(url) {
-  return /^https?:\/\//i.test(url);
+  return <DynIcon name={action.icon || "link"} className="h-5 w-5" />;
 }
 
 function MessageLink({ link, onNavigate }) {
   if (!link?.url) return null;
-  const className = "mt-2 inline-flex items-center gap-1 font-semibold text-brand-cyan hover:underline";
-  if (isInternalUrl(link.url)) {
+  const className = "mt-2 inline-flex items-center gap-1 font-semibold text-cyan-300 hover:underline";
+  if (link.url.startsWith("/") || link.url.startsWith("#")) {
     return <Link to={link.url} onClick={onNavigate} className={className}>{link.label}</Link>;
   }
   return (
-    <a
-      href={link.url}
-      target={isNewTabUrl(link.url) ? "_blank" : undefined}
-      rel={isNewTabUrl(link.url) ? "noopener noreferrer" : undefined}
-      className={className}
-    >
+    <a href={link.url} target="_blank" rel="noopener noreferrer" className={className}>
       {link.label}
     </a>
   );
 }
 
+function isValidMobile(value) {
+  return /^(?:\+91)?[6-9]\d{9}$/.test(value.replace(/[\s().-]/g, ""));
+}
+
+function makeTopicButtons(config) {
+  return config.quick_questions.map((topic) => ({
+    label: topic.label,
+    action: "topic",
+    topicId: topic.id,
+  }));
+}
+
 export default function ChatWidget() {
-  const { footer, chatbot: savedChatbot } = usePageContext();
-  const chatbot = normalizeChatbot(savedChatbot);
-  const contact = footer?.contact || {};
-  const contactAction = chatbot.contact_action;
-  const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const [config, setConfig] = useState(DEFAULT_CONFIG);
+  const [messages, setMessages] = useState([]);
+  const [path, setPath] = useState([]);
+  const [lead, setLead] = useState(EMPTY_LEAD);
+  const [leadStep, setLeadStep] = useState("");
   const [question, setQuestion] = useState("");
-  const [leadStep, setLeadStep] = useState(null);
-  const [lead, setLead] = useState({ name: "", project: "", contact: "", details: "" });
-  const [leadConsent, setLeadConsent] = useState(false);
-  const [leadStatus, setLeadStatus] = useState({ state: "idle", message: "" });
-  const [submittedLead, setSubmittedLead] = useState(null);
-  const [showContactOptions, setShowContactOptions] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
-  const [messages, setMessages] = useState(() => [
-    { id: 0, sender: "bot", text: chatbot.welcome, openLeadForm: false },
-  ]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isTyping, setIsTyping] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const [apiError, setApiError] = useState("");
   const scrollRef = useRef(null);
   const nextId = useRef(1);
   const replyTimer = useRef(null);
 
   useEffect(() => {
-    if (!open) return undefined;
-    function closeOnEscape(event) {
-      if ("Escape" === event.key) setOpen(false);
+    let active = true;
+    fetch(apiUrl("config"), { headers: { Accept: "application/json" } })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data?.message || "Chat settings could not be loaded.");
+        return data;
+      })
+      .then((data) => {
+        if (!active) return;
+        const loaded = normalizeConfig(data);
+        setConfig(loaded);
+        setIsTyping(false);
+        try {
+          const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || "null");
+          if (saved && Array.isArray(saved.messages) && saved.messages.length) {
+            setMessages(saved.messages);
+            setPath(Array.isArray(saved.path) ? saved.path : []);
+            setLead({ ...EMPTY_LEAD, ...(saved.lead || {}) });
+            setLeadStep(typeof saved.leadStep === "string" ? saved.leadStep : "");
+            nextId.current = saved.messages.reduce((max, message) => Math.max(max, message.id || 0), 0) + 1;
+            return;
+          }
+        } catch (error) {
+          console.warn("Saved chat session could not be restored.", error);
+        }
+        setMessages([{
+          id: nextId.current++,
+          sender: "bot",
+          text: loaded.welcome,
+          feature: { type: "buttons", buttons: makeTopicButtons(loaded) },
+        }]);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setIsTyping(false);
+        setApiError(error instanceof Error ? error.message : "The chat service is unavailable.");
+        setMessages([{
+          id: nextId.current++,
+          sender: "bot",
+          text: "Chat is temporarily unavailable. Please try again later or use the contact links below.",
+        }]);
+      });
+    return () => {
+      active = false;
+      window.clearTimeout(replyTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!messages.length) return;
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ messages, path, lead, leadStep }));
+    } catch (error) {
+      console.warn("Chat session could not be saved.", error);
     }
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [open]);
+  }, [messages, path, lead, leadStep]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, isTyping, leadStep, leadStatus, showContactOptions]);
+  }, [messages, isTyping, isOpen, leadStep]);
 
   useEffect(() => () => window.clearTimeout(replyTimer.current), []);
 
-  function addMessage(sender, text, options = {}) {
+  function addMessage(sender, text, feature) {
     setMessages((current) => [...current, {
       id: nextId.current++,
       sender,
       text,
-      ...options,
-    }]);
+      ...(feature ? { feature } : {}),
+    }].slice(-80));
   }
 
-  function replyAfterTyping(text, options = {}) {
+  function replyAfterTyping(text, feature) {
     window.clearTimeout(replyTimer.current);
     setIsTyping(true);
     replyTimer.current = window.setTimeout(() => {
-      addMessage("bot", text, options);
       setIsTyping(false);
-    }, 350);
+      addMessage("bot", text, feature);
+    }, 600);
   }
 
-  function startLeadCapture() {
-    if (leadStep !== null || leadStatus.state === "sending") return;
-    setLead({ name: "", project: "", contact: "", details: "" });
-    setLeadConsent(false);
-    setLeadStatus({ state: "idle", message: "" });
-    setSubmittedLead(null);
-    setShowContactOptions(false);
-    setLeadStep(0);
-    addMessage("bot", chatbot.lead_prompts[0]);
+  function findFaq(id) {
+    return config.faqs.find((faq) => faq.id === id);
   }
 
-  function activateContactAction() {
-    if (contactAction.behavior === "redirect") {
-      const url = contactAction.redirect_url;
-      setOpen(false);
-      if (isInternalUrl(url)) {
-        navigate(url);
-      } else if (isNewTabUrl(url)) {
-        window.open(url, "_blank", "noopener,noreferrer");
-      } else {
-        window.location.assign(url);
-      }
-      return;
-    }
-    if (leadStep === null) startLeadCapture();
-    else setShowContactOptions(false);
+  function relatedButtons(ids) {
+    return (Array.isArray(ids) ? ids : [])
+      .map((id) => findFaq(id))
+      .filter(Boolean)
+      .map((faq) => ({ label: faq.question, action: "related", faqId: faq.id }));
   }
 
-  function sendLeadAnswer(value) {
-    if (leadStep === 2 && !isValidContact(value)) {
-      replyAfterTyping("Please enter a valid phone number or email address so our team can reach you.");
+  function answerFaq(faq, userText) {
+    if (!faq) {
+      replyAfterTyping(config.fallback, { type: "fallback" });
       return;
     }
-
-    const keys = ["name", "project", "contact", "details"];
-    const updatedLead = {
-      ...lead,
-      [keys[leadStep]]: value.trim().slice(0, leadStep === 3 ? 1000 : 254),
-    };
-    setLead(updatedLead);
-    setLeadStatus({ state: "idle", message: "" });
-
-    if (leadStep < keys.length - 1) {
-      const nextStep = leadStep + 1;
-      setLeadStep(nextStep);
-      replyAfterTyping(chatbot.lead_prompts[nextStep]);
-      return;
-    }
-
-    setLeadStep(4);
-    replyAfterTyping(
-      "Thank you. Before I send this to our team, please confirm that we may use these details to contact you.",
-    );
-  }
-
-  function handleQuestion(value = question, quickAction = "question") {
-    const text = value.trim().slice(0, 500);
-    if (!text || isTyping || leadStep === 4) return;
-    addMessage("user", text);
-    setQuestion("");
-
-    if (leadStep !== null) {
-      sendLeadAnswer(text);
-      return;
-    }
-    if ("contact" === quickAction) {
-      activateContactAction();
-      return;
-    }
-    const reply = makeReply(text, chatbot);
-    replyAfterTyping(reply.text, {
-      link: reply.link,
-      openLeadForm: reply.openLeadForm,
+    if (userText) addMessage("user", userText);
+    setPath((current) => [...current, faq.question].slice(-60));
+    replyAfterTyping(faq.answer, {
+      type: "answer",
+      buttons: relatedButtons(faq.related_ids),
+      helpful: true,
     });
   }
 
-  function handleQuickQuestion(item) {
-    if (item.action !== "flow") {
-      handleQuestion(item.question || item.label, item.action);
+  function startLead(service = lead.service) {
+    const emptyLead = { ...EMPTY_LEAD, service: service || "" };
+    setLead(emptyLead);
+    setLeadStep("service");
+    replyAfterTyping(config.lead_questions.service, { type: "lead-service", selected: emptyLead.service });
+  }
+
+  function askLead(step, nextLead = lead) {
+    setLeadStep(step);
+    const feature = step === "service"
+      ? { type: "lead-service", selected: nextLead.service }
+      : step === "interest"
+        ? { type: "lead-interest" }
+        : step === "submit"
+          ? { type: "lead-submit" }
+          : null;
+    const text = step === "submit"
+      ? "Your details are ready. Send your enquiry when you are ready."
+      : config.lead_questions[step];
+    replyAfterTyping(text || "Please provide the requested information.", feature);
+  }
+
+  function chooseService(service) {
+    addMessage("user", service);
+    const nextLead = { ...lead, service };
+    setLead(nextLead);
+    askLead("name", nextLead);
+    setPath((current) => [...current, `Service: ${service}`].slice(-60));
+  }
+
+  function chooseInterest(interest) {
+    addMessage("user", interest);
+    const nextLead = { ...lead, interest };
+    setLead(nextLead);
+    askLead("message", nextLead);
+    setPath((current) => [...current, `Interest: ${interest}`].slice(-60));
+  }
+
+  function showTopic(topic) {
+    addMessage("user", topic.label);
+    setPath((current) => [...current, topic.label].slice(-60));
+    setLead((current) => ({ ...current, service: topic.label }));
+    if (topic.action === "contact") {
+      startLead(topic.label);
       return;
     }
-    if (isTyping || leadStep !== null) return;
-    addMessage("user", item.label);
-    setQuestion("");
-    replyAfterTyping(item.intro || `What would you like to know about ${item.label}?`, {
-      flowCategory: item,
-      flowOptions: item.options,
+    if (topic.action === "answer") {
+      answerFaq(findFaq(topic.answer_id));
+      return;
+    }
+    replyAfterTyping(topic.intro || `What would you like to know about ${topic.label}?`, {
+      type: "buttons",
+      buttons: topic.options.map((option) => ({
+        label: option.label,
+        action: option.action === "contact" ? "contact" : "option",
+        optionId: option.id,
+        topicId: topic.id,
+      })),
     });
   }
 
-  function handleFlowOption(messageId, category, option, options, selectedIndex) {
-    if (isTyping || leadStep !== null) return;
-    setMessages((current) => current.map((message) => (
-      message.id === messageId ? { ...message, flowOptions: [] } : message
-    )));
+  function showOption(topic, option) {
+    if (option.action === "contact") {
+      addMessage("user", option.label);
+      setPath((current) => [...current, option.label].slice(-60));
+      startLead(topic.label);
+      return;
+    }
     addMessage("user", option.label);
-    const link = option.link_url
-      ? { label: option.link_label || "Learn more", url: option.link_url }
-      : null;
-    if (option.kind === "other") {
-      replyAfterTyping(option.answer, { link, openLeadForm: true });
-      return;
-    }
-    const remainingOptions = options.filter((_, index) => index !== selectedIndex);
-    replyAfterTyping(option.answer, {
-      link,
-      flowCategory: category,
-      flowOptions: remainingOptions,
-    });
+    setPath((current) => [...current, option.label].slice(-60));
+    const remaining = topic.options
+      .filter((item) => item.id !== option.id)
+      .map((item) => ({
+        label: item.label,
+        action: item.action === "contact" ? "contact" : "option",
+        optionId: item.id,
+        topicId: topic.id,
+      }));
+    const buttons = [
+      ...relatedButtons(option.related_ids),
+      ...remaining,
+      { label: "← Back to services", action: "back" },
+    ];
+    replyAfterTyping(option.answer, { type: "answer", buttons, helpful: true });
   }
 
-  async function submitLead() {
-    if (!leadConsent || leadStatus.state === "sending") return;
-    setLeadStatus({ state: "sending", message: "" });
-    setSubmittedLead(lead);
-    try {
-      const result = await submitContactForm({
-        source: "chat_assistant",
-        name: lead.name,
-        project: lead.project,
-        contact: lead.contact,
-        details: lead.details,
-        consent: true,
-        website: "",
-      });
-      setLeadStatus({ state: "success", message: "" });
-      setLeadStep(null);
-      addMessage(
-        "bot",
-        `Thank you, ${lead.name}! Our team will contact you within 24 hours. Is there anything else I can help you with? 😊`,
-      );
-      if (result?.message && import.meta.env.DEV) {
-        console.info("[Chat] Enquiry sent:", result.message);
+  function matchFaq(text) {
+    const query = text.toLowerCase();
+    let best = null;
+    let bestScore = 0;
+    config.faqs.forEach((faq) => {
+      const keywords = String(faq.keywords || "").split(",").map((item) => item.trim().toLowerCase()).filter(Boolean);
+      const matches = keywords.filter((keyword) => query.includes(keyword) || keyword.includes(query));
+      if (matches.length > bestScore) {
+        best = faq;
+        bestScore = matches.length;
       }
+    });
+    return best;
+  }
+
+  function handleText(value = question) {
+    const text = value.trim().slice(0, 1000);
+    if (!text || isTyping || isSending || leadStep === "service" || leadStep === "interest" || leadStep === "submit") return;
+    setQuestion("");
+    addMessage("user", text);
+    if (leadStep === "name") {
+      const nextLead = { ...lead, name: text.slice(0, 190) };
+      setLead(nextLead);
+      askLead("email", nextLead);
+      return;
+    }
+    if (leadStep === "email") {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
+        replyAfterTyping("Please enter a valid email address.");
+        return;
+      }
+      const nextLead = { ...lead, email: text.slice(0, 190) };
+      setLead(nextLead);
+      askLead("mobile", nextLead);
+      return;
+    }
+    if (leadStep === "mobile") {
+      if (!isValidMobile(text)) {
+        replyAfterTyping("Please enter a valid 10-digit mobile number, optionally with +91.");
+        return;
+      }
+      const nextLead = { ...lead, mobile: text.replace(/[\s().-]/g, "") };
+      setLead(nextLead);
+      askLead("interest", nextLead);
+      return;
+    }
+    if (leadStep === "message") {
+      const nextLead = { ...lead, message: text.slice(0, 5000) };
+      setLead(nextLead);
+      askLead("submit", nextLead);
+      return;
+    }
+    const faq = matchFaq(text);
+    if (faq) {
+      setPath((current) => [...current, text].slice(-60));
+      answerFaq(faq);
+    } else {
+      replyAfterTyping(config.fallback);
+      window.setTimeout(() => startLead(lead.service), 650);
+    }
+  }
+
+  function runButton(button, messageId) {
+    if (isTyping || isSending) return;
+    if (messageId) {
+      setMessages((current) => current.map((message) => (
+        message.id === messageId ? { ...message, feature: null } : message
+      )));
+    }
+    if (button.action === "topic") {
+      const topic = config.quick_questions.find((item) => item.id === button.topicId);
+      if (topic) showTopic(topic);
+    } else if (button.action === "option") {
+      const topic = config.quick_questions.find((item) => item.id === button.topicId);
+      const option = topic?.options?.find((item) => item.id === button.optionId);
+      if (topic && option) showOption(topic, option);
+    } else if (button.action === "related") {
+      const faq = findFaq(button.faqId);
+      if (faq) answerFaq(faq, button.label);
+    } else if (button.action === "contact") {
+      addMessage("user", button.label);
+      const topic = config.quick_questions.find((item) => item.id === button.topicId);
+      startLead(topic?.label || lead.service);
+    } else if (button.action === "back") {
+      addMessage("user", "Back to services");
+      replyAfterTyping("What would you like help with?", {
+        type: "buttons",
+        buttons: makeTopicButtons(config),
+      });
+    } else if (button.action === "help-yes") {
+      addMessage("user", "Yes");
+      replyAfterTyping("Great, glad I could help! 😊 Want a free quote?", { type: "quote" });
+    } else if (button.action === "help-no") {
+      addMessage("user", "No");
+      addMessage("bot", "Sorry I couldn't fully help. Please share your details and our team will contact you shortly.");
+      startLead(lead.service);
+    } else if (button.action === "quote") {
+      addMessage("user", "Get a Free Quote");
+      startLead(lead.service);
+    } else if (button.action === "no-thanks") {
+      addMessage("user", "No, thanks");
+      replyAfterTyping("No problem. You can reach us through the contact links below.");
+    } else if (button.action === "lead-service") {
+      chooseService(button.value);
+    } else if (button.action === "lead-interest") {
+      chooseInterest(button.value);
+    } else if (button.action === "fallback-contact") {
+      startLead(lead.service);
+    }
+  }
+
+  async function sendLead() {
+    if (isSending || !lead.name || !lead.email || !lead.mobile || !lead.service || !lead.interest) return;
+    setIsSending(true);
+    try {
+      const response = await fetch(apiUrl("leads"), {
+        method: "POST",
+        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        body: JSON.stringify({ ...lead, chat_path: path, website: "" }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result?.message || "Your enquiry could not be sent.");
+      setLeadStep("");
+      let text = `Thank you, ${lead.name}! Your enquiry has been sent. Our team will contact you within 24 hours.`;
+      if (result.email_sent === false || result.webhook_sent === false) {
+        text += " A notification could not be delivered, so please also contact us using the links below.";
+      }
+      addMessage("bot", text);
     } catch (error) {
-      setLeadStatus({
-        state: "error",
-        message: error instanceof Error ? error.message : "Your enquiry could not be sent. Please try again.",
+      addMessage("bot", error instanceof Error ? error.message : "Your enquiry could not be sent. Please try again.", {
+        type: "lead-submit",
       });
     } finally {
-      setShowContactOptions(true);
+      setIsSending(false);
     }
   }
 
-  const activeActions = chatbot.actions.filter((action) => action?.label && action?.icon && action?.url);
+  function restartChat() {
+    window.clearTimeout(replyTimer.current);
+    const welcome = {
+      id: nextId.current++,
+      sender: "bot",
+      text: config.welcome,
+      feature: { type: "buttons", buttons: makeTopicButtons(config) },
+    };
+    setMessages([welcome]);
+    setPath([]);
+    setLead({ ...EMPTY_LEAD });
+    setLeadStep("");
+    setQuestion("");
+    setIsTyping(false);
+    sessionStorage.removeItem(STORAGE_KEY);
+  }
+
+  const positionClass = config.position === "left" ? "left-5 items-start" : "right-5 items-end";
 
   return (
-    <div className="fixed bottom-5 right-5 z-[100] flex flex-col items-end">
-      {open && (
+    <div
+      className={`fixed bottom-5 z-[100] flex flex-col ${positionClass}`}
+      style={{ "--chat-primary": config.primary_color || "#2563eb" }}
+    >
+      {isOpen && (
         <section
-          aria-label="Tech Easy assistant chat"
-          className="mb-3 flex max-h-[min(76vh,42rem)] w-[min(24rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-800 shadow-2xl shadow-black/50"
+          aria-label={`${config.bot_name || "Chat assistant"} conversation`}
+          className="mb-3 flex max-h-[min(78vh,44rem)] w-[min(25rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#101323] text-white shadow-2xl shadow-black/50 max-sm:fixed max-sm:inset-0 max-sm:mb-0 max-sm:h-dvh max-sm:max-h-dvh max-sm:w-full max-sm:rounded-none"
         >
-          <header className="flex items-center justify-between bg-gradient-to-r from-brand-blue to-brand-purple px-4 py-3">
-            <div>
-              <h2 className="text-sm font-bold text-white">Tech Easy Assistant</h2>
-              <p className="text-xs text-white/80">Here to help with your project</p>
+          <header className="flex items-center justify-between bg-[linear-gradient(115deg,var(--chat-primary),#6d28d9)] px-4 py-3">
+            <div className="flex min-w-0 items-center gap-3">
+              {config.avatar && <img src={config.avatar} alt="" className="h-10 w-10 rounded-full border border-white/30 object-cover" />}
+              <div className="min-w-0">
+                <h2 className="truncate text-sm font-bold">{config.bot_name || "Tech Easy Assistant"}</h2>
+                <p className="text-xs text-white/75">Here to help with your project</p>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="rounded-full p-2 text-white/90 hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
-              aria-label="Close chat"
-            >
-              <Icon name="minus" className="h-4 w-4" />
-            </button>
+            <div className="flex gap-1">
+              <button type="button" onClick={restartChat} className="rounded-full p-2 text-lg hover:bg-white/15" aria-label="Restart chat" title="Restart chat">↻</button>
+              <button type="button" onClick={() => setIsOpen(false)} className="rounded-full p-2 text-lg hover:bg-white/15" aria-label="Close chat">×</button>
+            </div>
           </header>
 
-          <div ref={scrollRef} className="min-h-36 flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
+          <div ref={scrollRef} className="min-h-36 flex-1 space-y-3 overflow-y-auto p-4" role="log" aria-live="polite">
             {messages.map((message) => (
-              <div key={message.id} className={`flex ${"user" === message.sender ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                  "user" === message.sender
-                    ? "rounded-br-sm bg-brand-blue text-white"
+              <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[90%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                  message.sender === "user"
+                    ? "rounded-br-sm bg-[var(--chat-primary)] text-white"
                     : "rounded-bl-sm border border-white/10 bg-white/[0.05] text-white/90"
                 }`}>
                   <p className="whitespace-pre-wrap">{message.text}</p>
-                  <MessageLink link={message.link} onNavigate={() => setOpen(false)} />
-                  {message.openLeadForm && (
-                    <button
-                      type="button"
-                      onClick={activateContactAction}
-                      className="mt-2 inline-flex items-center gap-1 font-semibold text-brand-cyan hover:underline"
-                    >
-                      {contactAction.label} <ConfigIcon name={contactAction.icon} className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                  {message.flowOptions?.length > 0 && (
+                  {message.link && <MessageLink link={message.link} onNavigate={() => setIsOpen(false)} />}
+                  {message.feature?.buttons?.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {message.flowOptions.map((option, index) => (
+                      {message.feature.buttons.map((button, index) => (
                         <button
-                          key={`${option.label}-${index}`}
+                          key={`${button.action}-${button.label}-${index}`}
                           type="button"
-                          disabled={isTyping || leadStep !== null}
-                          onClick={() => handleFlowOption(message.id, message.flowCategory, option, message.flowOptions, index)}
-                          className="rounded-full border border-white/15 px-3 py-1.5 text-left text-xs text-white/80 hover:border-brand-cyan/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={isTyping || isSending}
+                          onClick={() => runButton(button, message.id)}
+                          className="rounded-full border border-white/15 px-3 py-1.5 text-left text-xs text-white/90 transition hover:border-cyan-300/70 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          {option.label}
+                          {button.label}
                         </button>
                       ))}
                     </div>
                   )}
+                  {message.feature?.helpful && (
+                    <div className="mt-3">
+                      <p className="mb-2 text-[11px] text-white/60">Was this helpful?</p>
+                      <div className="flex gap-2">
+                        {[
+                          { label: "Yes", action: "help-yes" },
+                          { label: "No", action: "help-no" },
+                        ].map((button) => (
+                          <button
+                            key={button.action}
+                            type="button"
+                            disabled={isTyping || isSending}
+                            onClick={() => runButton(button, message.id)}
+                            className="rounded-full border border-white/15 px-3 py-1.5 text-xs hover:border-cyan-300/70 disabled:opacity-50"
+                          >
+                            {button.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {message.feature?.type === "quote" && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button type="button" onClick={() => runButton({ action: "quote" }, message.id)} className="rounded-full bg-[var(--chat-primary)] px-3 py-2 text-xs font-semibold">Get a Free Quote</button>
+                      <button type="button" onClick={() => runButton({ action: "no-thanks" }, message.id)} className="rounded-full border border-white/15 px-3 py-2 text-xs">No, thanks</button>
+                    </div>
+                  )}
+                  {message.feature?.type === "lead-service" && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {config.quick_questions.filter((topic) => topic.action !== "contact").map((topic) => (
+                        <button key={topic.id} type="button" onClick={() => runButton({ action: "lead-service", value: topic.label }, message.id)} className="rounded-full border border-white/15 px-3 py-1.5 text-xs hover:border-cyan-300/70">
+                          {topic.label}{topic.label === message.feature.selected ? " (selected)" : ""}
+                        </button>
+                      ))}
+                      <button type="button" onClick={() => runButton({ action: "lead-service", value: "Other" }, message.id)} className="rounded-full border border-white/15 px-3 py-1.5 text-xs hover:border-cyan-300/70">Other</button>
+                    </div>
+                  )}
+                  {message.feature?.type === "lead-interest" && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {INTERESTS.map((interest) => (
+                        <button key={interest} type="button" onClick={() => runButton({ action: "lead-interest", value: interest }, message.id)} className="rounded-full border border-white/15 px-3 py-1.5 text-xs hover:border-cyan-300/70">{interest}</button>
+                      ))}
+                    </div>
+                  )}
+                  {message.feature?.type === "fallback" && (
+                    <button type="button" onClick={() => runButton({ action: "fallback-contact" }, message.id)} className="mt-3 rounded-full border border-white/15 px-3 py-1.5 text-xs hover:border-cyan-300/70">Share my details</button>
+                  )}
+                  {message.feature?.type === "lead-submit" && (
+                    <button type="button" disabled={isSending} onClick={sendLead} className="mt-3 rounded-full bg-[var(--chat-primary)] px-4 py-2 text-xs font-semibold disabled:opacity-60">
+                      {isSending ? "Sending..." : "Send Enquiry"}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
-
             {isTyping && (
-              <div className="flex justify-start">
-                <div className="rounded-2xl rounded-bl-sm border border-white/10 bg-white/[0.05] px-3.5 py-2.5 text-sm text-white/70" role="status">
-                  Typing...
-                </div>
-              </div>
-            )}
-
-            {messages.length === 1 && leadStep === null && chatbot.quick_questions.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {chatbot.quick_questions.map((item, index) => (
-                  <button
-                    key={`${item.label}-${index}`}
-                    type="button"
-                    disabled={isTyping}
-                    onClick={() => handleQuickQuestion(item)}
-                    className="rounded-full border border-white/10 px-3 py-1.5 text-left text-xs text-white/80 hover:border-brand-cyan/50 hover:text-white"
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+              <div className="flex justify-start"><div className="rounded-2xl border border-white/10 bg-white/[0.05] px-3.5 py-2.5 text-xs text-white/65" role="status">Typing...</div></div>
             )}
           </div>
 
-          <div className="border-t border-white/10 p-3">
-            {leadStep === 4 && (
-              <div className="mb-3 space-y-2 rounded-xl border border-white/10 bg-white/[0.04] p-3">
-                <label className="flex items-start gap-2 text-xs leading-relaxed text-white/75">
-                  <input
-                    type="checkbox"
-                    checked={leadConsent}
-                    onChange={(event) => setLeadConsent(event.target.checked)}
-                    className="mt-0.5 accent-brand-blue"
-                  />
-                  <span>
-                    I agree to share my enquiry with Tech Easy and have read the{" "}
-                    <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-brand-cyan underline">
-                      Privacy Policy
-                    </a>.
-                  </span>
-                </label>
-                {leadStatus.message && <p role="alert" className="text-xs text-rose-300">{leadStatus.message}</p>}
-                <button
-                  type="button"
-                  onClick={submitLead}
-                  disabled={!leadConsent || leadStatus.state === "sending"}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-brand-blue to-brand-purple px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          <div className="flex shrink-0 justify-center gap-2 border-t border-white/10 bg-white/[0.025] px-2 py-2" aria-label="Contact links">
+            {config.actions.filter((action) => action?.url && action?.label).map((action) => {
+              const internal = action.url.startsWith("/") || action.url.startsWith("#");
+              const className = "flex max-w-[33%] items-center gap-1.5 rounded-lg border border-white/15 px-2 py-1.5 text-[10px] text-white/85 hover:border-cyan-300/60";
+              const content = <><ConfigIcon action={action} /><span className="truncate">{action.label}</span></>;
+              return internal ? (
+                <Link key={action.id || action.label} to={action.url} onClick={() => setIsOpen(false)} className={className}>{content}</Link>
+              ) : (
+                <a
+                  key={action.id || action.label}
+                  href={action.url}
+                  target={/^https?:\/\//i.test(action.url) ? "_blank" : undefined}
+                  rel={/^https?:\/\//i.test(action.url) ? "noopener noreferrer" : undefined}
+                  className={className}
                 >
-                  {leadStatus.state === "sending" ? "Sending..." : "Send enquiry"}
-                  <Icon name="send" className="h-4 w-4" />
-                </button>
-              </div>
-            )}
+                  {content}
+                </a>
+              );
+            })}
+          </div>
 
-            {showContactOptions && (
-              <div className="mb-3 flex flex-wrap justify-center gap-3" aria-label="Other ways to contact Tech Easy">
-                {activeActions.map((action, index) => {
-                  const url = getActionUrl(action, submittedLead);
-                  const linkClass = "flex min-w-20 flex-col items-center gap-1 rounded-xl border border-white/15 px-3 py-2 text-[11px] text-white/80 hover:bg-white/10";
-                  const content = (
-                    <>
-                      <ConfigIcon name={action.icon} className="h-5 w-5" />
-                      {action.label}
-                    </>
-                  );
-                  return isInternalUrl(url) ? (
-                    <Link key={`${action.label}-${index}`} to={url} onClick={() => setOpen(false)} className={linkClass}>
-                      {content}
-                    </Link>
-                  ) : (
-                    <a
-                      key={`${action.label}-${index}`}
-                      href={url}
-                      target={isNewTabUrl(url) ? "_blank" : undefined}
-                      rel={isNewTabUrl(url) ? "noopener noreferrer" : undefined}
-                      className={linkClass}
-                    >
-                      {content}
-                    </a>
-                  );
-                })}
-
-                {contactAction.behavior === "redirect" ? (
-                  isInternalUrl(contactAction.redirect_url) ? (
-                    <Link
-                      to={contactAction.redirect_url}
-                      onClick={() => setOpen(false)}
-                      className="flex min-w-20 flex-col items-center gap-1 rounded-xl border border-white/15 px-3 py-2 text-[11px] text-white/80 hover:bg-white/10"
-                    >
-                      <ConfigIcon name={contactAction.icon} className="h-5 w-5" />
-                      {contactAction.label}
-                    </Link>
-                  ) : (
-                    <a
-                      href={contactAction.redirect_url}
-                      target={isNewTabUrl(contactAction.redirect_url) ? "_blank" : undefined}
-                      rel={isNewTabUrl(contactAction.redirect_url) ? "noopener noreferrer" : undefined}
-                      className="flex min-w-20 flex-col items-center gap-1 rounded-xl border border-white/15 px-3 py-2 text-[11px] text-white/80 hover:bg-white/10"
-                    >
-                      <ConfigIcon name={contactAction.icon} className="h-5 w-5" />
-                      {contactAction.label}
-                    </a>
-                  )
-                ) : (
-                  <button
-                    type="button"
-                    onClick={activateContactAction}
-                    className="flex min-w-20 flex-col items-center gap-1 rounded-xl border border-white/15 px-3 py-2 text-[11px] text-white/80 hover:bg-white/10"
-                  >
-                    <ConfigIcon name={contactAction.icon} className="h-5 w-5" />
-                    {contactAction.label}
-                  </button>
-                )}
-              </div>
-            )}
-
-            <p className="mb-2 text-[11px] leading-relaxed text-white/55">
+          <div className="border-t border-white/10 p-3">
+            <p className="mb-2 text-[10px] leading-relaxed text-white/55">
               By chatting, you agree to our{" "}
-              <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-white/80">
-                Privacy Policy
-              </a>.
+              <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>.
             </p>
+            {apiError && <p role="alert" className="mb-2 text-xs text-rose-300">{apiError}</p>}
+            {leadStep === "message" && (
+              <button type="button" disabled={isTyping} onClick={() => { setQuestion(""); askLead("submit", { ...lead, message: "" }); }} className="mb-2 text-xs text-cyan-200 underline disabled:opacity-50">
+                Skip message
+              </button>
+            )}
             <form
               onSubmit={(event) => {
                 event.preventDefault();
-                handleQuestion();
+                if (leadStep === "message" && !question.trim()) {
+                  askLead("submit", { ...lead, message: "" });
+                } else {
+                  handleText();
+                }
               }}
               className="flex items-center gap-2"
             >
               <input
                 value={question}
                 onChange={(event) => setQuestion(event.target.value)}
-                maxLength={leadStep === 3 ? 1000 : 500}
-                placeholder={leadStep === 4 ? "Please confirm above to send" : leadStep !== null ? "Type your answer..." : "Ask about our services..."}
-                aria-label={leadStep !== null ? "Answer the assistant" : "Ask the assistant a question"}
-                disabled={isTyping || leadStep === 4}
-                className="min-w-0 flex-1 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm text-white placeholder:text-muted focus:border-brand-cyan/50 focus:outline-none disabled:opacity-50"
+                maxLength={leadStep === "message" ? 5000 : 1000}
+                placeholder={
+                  leadStep === "name" ? "Your name..." :
+                    leadStep === "email" ? "Your email..." :
+                      leadStep === "mobile" ? "Your mobile number..." :
+                        leadStep === "message" ? "Message (optional)..." : "Ask about our services..."
+                }
+                aria-label={leadStep ? `Enter ${leadStep}` : "Ask the assistant a question"}
+                disabled={isTyping || isSending || ["service", "interest", "submit"].includes(leadStep)}
+                className="min-w-0 flex-1 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm text-white placeholder:text-slate-400 focus:border-cyan-300/60 focus:outline-none disabled:opacity-50"
               />
               <button
                 type="submit"
-                disabled={!question.trim() || isTyping || leadStep === 4}
+                disabled={!question.trim() && leadStep !== "message" || isTyping || isSending || ["service", "interest", "submit"].includes(leadStep)}
                 aria-label="Send message"
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-blue text-white transition hover:bg-brand-cyan disabled:cursor-not-allowed disabled:opacity-40"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--chat-primary)] text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Icon name="send" className="h-4 w-4" />
               </button>
             </form>
-            {contact.email && (
-              <a href={`mailto:${contact.email}`} className="mt-2 block text-center text-xs text-white/60 hover:text-white">
-                {contact.email}
-              </a>
-            )}
           </div>
         </section>
       )}
 
       <button
         type="button"
-        onClick={() => setOpen((visible) => !visible)}
-        aria-expanded={open}
-        aria-label={open ? "Close chat" : "Open chat"}
-        className="grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-brand-blue to-brand-purple text-white shadow-xl shadow-brand-blue/30 ring-1 ring-white/20 transition hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-cyan"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-expanded={isOpen}
+        aria-label={isOpen ? "Close chat" : "Open chat"}
+        className="grid h-14 w-14 place-items-center rounded-full bg-[linear-gradient(135deg,var(--chat-primary),#6d28d9)] text-white shadow-xl shadow-black/40 transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
       >
-        <Icon name={open ? "minus" : "message"} className="h-6 w-6" />
+        {isOpen ? <Icon name="minus" className="h-5 w-5" /> : <Icon name="message-circle" className="h-6 w-6" />}
       </button>
     </div>
   );
-}
-
-function isValidContact(value) {
-  const contact = value.trim();
-  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) return true;
-  const digits = contact.replace(/\D/g, "");
-  return /^[+()\d.\-\s]+$/.test(contact) && digits.length >= 7 && digits.length <= 15;
 }

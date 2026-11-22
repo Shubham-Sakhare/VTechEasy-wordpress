@@ -1,0 +1,40 @@
+.tea-chat-admin { max-width: 1080px; }
+.tea-chat-admin .tea-panel {
+  margin: 18px 0; padding: 20px; border: 1px solid #dcdcde;
+  border-radius: 8px; background: #fff;
+}
+.tea-chat-admin .tea-panel h2 { margin-top: 0; }
+.tea-chat-admin .tea-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px; align-items: start;
+}
+.tea-chat-admin .tea-field { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
+.tea-chat-admin .tea-field > span { font-weight: 600; }
+.tea-chat-admin .tea-field input:not([type="color"]), .tea-chat-admin .tea-field select,
+.tea-chat-admin .tea-field textarea { width: 100%; max-width: none; }
+.tea-chat-admin .tea-item, .tea-chat-admin .tea-option {
+  margin: 12px 0; padding: 16px; border: 1px solid #dcdcde; border-radius: 6px;
+  background: #f9f9f9;
+}
+.tea-chat-admin .tea-option { margin-left: 18px; background: #fff; }
+.tea-chat-admin .tea-row-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.tea-chat-admin .tea-row-head strong { flex: 1; }
+.tea-chat-admin .tea-drag { cursor: grab; font-size: 18px; color: #646970; }
+.tea-chat-admin .is-dragging { opacity: .45; }
+.tea-chat-admin .tea-related {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 7px; padding: 10px; border: 1px solid #dcdcde;
+}
+.tea-chat-admin .tea-related legend { padding: 0 5px; font-weight: 600; }
+.tea-chat-admin .tea-related label { font-size: 12px; }
+.tea-chat-admin .tea-add { margin-top: 8px; }
+.tea-chat-admin .tea-checkbox { display: inline-flex; gap: 8px; align-items: center; margin-top: 12px; }
+.tea-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0; }
+.tea-filters label { display: flex; align-items: center; gap: 6px; }
+.tea-filters input[type="search"] { min-width: 240px; }
+.tea-chat-admin details { margin-top: 5px; }
+.tea-chat-admin [hidden] { display: none !important; }
+@media (max-width: 782px) {
+  .tea-chat-admin .tea-panel { padding: 14px; }
+  .tea-chat-admin .tea-option { margin-left: 0; }
+}
