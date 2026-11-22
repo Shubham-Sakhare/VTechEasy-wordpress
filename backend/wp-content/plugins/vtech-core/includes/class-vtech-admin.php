@@ -134,6 +134,11 @@ class VTech_Admin {
 					<h2>Footer</h2>
 					<p>Logo, tagline, link columns, contact details &amp; social icons.</p>
 				</a>
+				<a class="vtech-card" href="<?php echo esc_url( admin_url( 'admin.php?page=vtech-chatbot' ) ); ?>">
+					<span class="dashicons dashicons-format-chat"></span>
+					<h2>Chat Assistant</h2>
+					<p>Manage chatbot questions, answers, links, actions &amp; contact behavior.</p>
+				</a>
 				<?php foreach ( $pages as $slug => $page ) : ?>
 					<a class="vtech-card" href="<?php echo esc_url( admin_url( 'admin.php?page=vtech-page-' . $slug ) ); ?>">
 						<span class="dashicons dashicons-admin-page"></span>

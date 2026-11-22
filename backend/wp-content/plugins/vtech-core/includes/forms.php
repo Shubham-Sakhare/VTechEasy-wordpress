@@ -315,6 +315,54 @@ function vtech_contact_form_submission( $fields, $values, $files ) {
 }
 
 /**
+ * Validate a chat assistant lead, which accepts either an email or phone.
+ *
+ * @param array $data Submitted lead fields.
+ * @return array|WP_Error
+ */
+function vtech_chat_lead_submission( $data ) {
+	$name    = vtech_form_text_value( $data, 'name' );
+	$project = vtech_form_text_value( $data, 'project' );
+	$contact = vtech_form_text_value( $data, 'contact' );
+	$details = vtech_form_text_value( $data, 'details', true );
+	$consent = isset( $data['consent'] ) && is_scalar( $data['consent'] ) && in_array( (string) $data['consent'], array( '1', 'true', 'on' ), true );
+
+	if ( '' === $name || strlen( $name ) > 120 || '' === $project || strlen( $project ) > 160 || '' === $details || strlen( $details ) > 4000 ) {
+		return new WP_Error( 'vtech_invalid_submission', 'Please complete each enquiry field and keep it within the allowed length.', array( 'status' => 400 ) );
+	}
+	if ( ! $consent ) {
+		return new WP_Error( 'vtech_consent_required', 'Please agree to the Privacy Policy before sending your enquiry.', array( 'status' => 400 ) );
+	}
+
+	$reply_email = '';
+	if ( false !== strpos( $contact, '@' ) ) {
+		$reply_email = sanitize_email( $contact );
+		if ( ! is_email( $reply_email ) || strlen( $contact ) > 254 ) {
+			return new WP_Error( 'vtech_invalid_contact', 'Enter a valid email address or phone number.', array( 'status' => 400 ) );
+		}
+	} else {
+		$digits = preg_replace( '/\D/', '', $contact );
+		if ( ! preg_match( '/^[+0-9().\-\s]{7,25}$/', $contact ) || strlen( $digits ) < 7 || strlen( $digits ) > 15 ) {
+			return new WP_Error( 'vtech_invalid_contact', 'Enter a valid email address or phone number.', array( 'status' => 400 ) );
+		}
+	}
+
+	return array(
+		'body'        => implode(
+			"\n",
+			array(
+				'Name: ' . $name,
+				'Project type: ' . $project,
+				'Phone or email: ' . $contact,
+				'Requirements and expected timeline: ' . $details,
+			)
+		),
+		'attachments' => array(),
+		'reply_email' => $reply_email,
+	);
+}
+
+/**
  * Send a contact message to the configured notification address.
  *
  * @param WP_REST_Request $request REST request.
@@ -335,7 +383,10 @@ function vtech_rest_contact_submission( $request ) {
 		return rest_ensure_response( array( 'message' => 'Your message has been sent.' ) );
 	}
 
-	$submitted = vtech_contact_form_submission( vtech_contact_form_fields(), $data, $request->get_file_params() );
+	$is_chat_lead = isset( $data['source'] ) && 'chat_assistant' === $data['source'];
+	$submitted   = $is_chat_lead
+		? vtech_chat_lead_submission( $data )
+		: vtech_contact_form_submission( vtech_contact_form_fields(), $data, $request->get_file_params() );
 	if ( is_wp_error( $submitted ) ) {
 		return $submitted;
 	}
@@ -352,7 +403,7 @@ function vtech_rest_contact_submission( $request ) {
 	}
 	$sent = wp_mail(
 		$recipient,
-		'Website contact form submission',
+		$is_chat_lead ? 'Website chat enquiry' : 'Website contact form submission',
 		$submitted['body'],
 		$headers,
 		$submitted['attachments']

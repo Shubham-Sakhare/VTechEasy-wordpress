@@ -474,6 +474,127 @@ function vtech_normalize_hero_data( array $data ) {
 }
 
 /**
+ * Default chatbot content and actions for the chat assistant.
+ *
+ * @return array
+ */
+function vtech_chatbot_default_config() {
+	return array(
+		'welcome'         => "Hi! 👋 I'm the Tech Easy assistant. How can I help you today?",
+		'quick_questions' => array(
+			array( 'label' => 'Web Development', 'question' => 'What services do you offer?', 'action' => 'question' ),
+			array( 'label' => 'Mobile App', 'question' => 'Do you build mobile apps for Android or iOS?', 'action' => 'question' ),
+			array( 'label' => 'UI/UX Design', 'question' => 'Tell me about your services.', 'action' => 'question' ),
+			array( 'label' => 'Pricing', 'question' => 'How much does a project cost?', 'action' => 'question' ),
+			array( 'label' => 'Project Timeline', 'question' => 'How long does it take to build a website?', 'action' => 'question' ),
+			array( 'label' => 'Talk to Our Team', 'question' => '', 'action' => 'contact' ),
+		),
+		'faqs'            => array(
+			array(
+				'question'   => 'What services do you offer?',
+				'keywords'   => 'services, web development, mobile app, UI UX, automation, ongoing support',
+				'answer'     => 'We offer Web Development, Mobile App Development, UI/UX Design, Automation and Ongoing Support. Which one are you interested in?',
+				'link_label' => 'Explore Services',
+				'link_url'   => '/services',
+			),
+			array(
+				'question'   => 'How long does it take to build a website?',
+				'keywords'   => 'timeline, duration, how long, weeks, project delivery',
+				'answer'     => 'A small website takes 1-2 weeks and larger projects take 4-8 weeks. The exact timeline depends on your requirements. Share your idea and our team will confirm it.',
+				'link_label' => '',
+				'link_url'   => '',
+			),
+			array(
+				'question'   => 'How much does a project cost?',
+				'keywords'   => 'price, pricing, cost, budget, quote, charges',
+				'answer'     => 'The cost depends on the scope: pages, features and design. Share your requirements and our team will send you a free quote.',
+				'link_label' => 'View Pricing',
+				'link_url'   => '/pricing',
+			),
+			array(
+				'question'   => 'Do you build mobile apps for Android or iOS?',
+				'keywords'   => 'mobile, app, android, ios, iphone, cross platform',
+				'answer'     => 'Yes, we build apps for both Android and iOS. We also build cross-platform apps to save time and cost.',
+				'link_label' => '',
+				'link_url'   => '',
+			),
+			array(
+				'question'   => 'Can you redesign my existing website?',
+				'keywords'   => 'redesign, existing website, speed optimization, improve website',
+				'answer'     => 'Absolutely. We handle redesign, speed optimization and SEO improvements. Please share your website link.',
+				'link_label' => '',
+				'link_url'   => '',
+			),
+			array(
+				'question'   => 'Do you provide support after launch?',
+				'keywords'   => 'support, maintenance, after launch, updates',
+				'answer'     => 'Yes, we provide ongoing support, updates and maintenance after launch.',
+				'link_label' => '',
+				'link_url'   => '',
+			),
+			array(
+				'question'   => 'Can I see your previous work?',
+				'keywords'   => 'portfolio, previous work, past work, projects, examples',
+				'answer'     => 'Sure! You can explore our projects here.',
+				'link_label' => 'Explore Portfolio',
+				'link_url'   => '/portfolio',
+			),
+			array(
+				'question'   => 'Where are you located?',
+				'keywords'   => 'location, located, based, office, Hyderabad',
+				'answer'     => "We're based in Hyderabad, India, and work with clients everywhere through online meetings and calls.",
+				'link_label' => '',
+				'link_url'   => '',
+			),
+			array(
+				'question'   => 'How do I get started?',
+				'keywords'   => 'get started, process, consultation, book, discuss plan develop launch',
+				'answer'     => "It's simple: Discuss, Plan, Develop, Launch. We start with a free consultation. Would you like to book one?",
+				'link_label' => 'Contact Us',
+				'link_url'   => '/contact#contact-form',
+			),
+			array(
+				'question'   => 'Do you offer SEO?',
+				'keywords'   => 'SEO, search engine, on page SEO, google ranking',
+				'answer'     => 'Yes, we build SEO-friendly websites and also offer on-page SEO support.',
+				'link_label' => '',
+				'link_url'   => '',
+			),
+			array(
+				'question'   => 'Is my data safe with you?',
+				'keywords'   => 'data safe, confidential, privacy, security, secure',
+				'answer'     => 'Yes, we keep all project and client information confidential.',
+				'link_label' => 'Privacy Policy',
+				'link_url'   => '/privacy-policy',
+			),
+		),
+		'lead_prompts'    => array(
+			'May I know your name?',
+			'What type of project do you have in mind? (Website / Mobile App / UI/UX Design / Other)',
+			"What's the best phone number or email to reach you?",
+			'Please tell us briefly what you need and your expected timeline.',
+		),
+		'fallback'        => array(
+			'unknown'  => "I'm not able to answer that right now. Please share your name and contact details and our team will get back to you, or message us on WhatsApp.",
+			'off_topic' => "I can only help with Tech Easy's services. Would you like to know about web development, mobile apps or UI/UX design?",
+			'human'   => "I'm sorry for the trouble. Let me connect you with our team. Please share your phone number and we'll call you shortly.",
+		),
+		'handoff_keywords' => 'human, real person, talk to our team, call me, agent, angry, upset, unhappy, frustrated, complaint, not happy',
+		'off_topic_keywords' => 'weather, cricket, football, joke, recipe, politics, movie, song, homework',
+		'actions'         => array(
+			array( 'label' => 'WhatsApp', 'icon' => 'whatsapp', 'url' => 'https://wa.me/919096337434' ),
+			array( 'label' => 'Instagram', 'icon' => 'instagram', 'url' => 'https://www.instagram.com/vtecheasy/?hl=en' ),
+		),
+		'contact_action'  => array(
+			'label'        => 'Contact',
+			'icon'         => 'mail',
+			'behavior'     => 'chat_form',
+			'redirect_url' => '/contact#contact-form',
+		),
+	);
+}
+
+/**
  * Default content. Mirrors src/data/siteData.js so the frontend
  * renders correctly the moment the plugin is active.
  *
@@ -547,6 +668,7 @@ function vtech_core_default_content() {
 				array( 'label' => 'Terms & Conditions', 'url' => '#' ),
 			),
 		),
+		'chatbot' => vtech_chatbot_default_config(),
 	);
 }
 
@@ -565,6 +687,7 @@ function vtech_feather_icons() {
 		'monitor', 'pen-tool', 'image', 'camera', 'shopping-cart', 'dollar-sign',
 		'help-circle', 'message-circle', 'thumbs-up', 'globe', 'search',
 		'facebook', 'instagram', 'linkedin', 'twitter', 'youtube', 'github',
+		'whatsapp', 'telegram',
 	);
 }
 

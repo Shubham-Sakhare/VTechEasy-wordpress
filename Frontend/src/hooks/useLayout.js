@@ -1,6 +1,7 @@
 import { getLayout } from "../api/wordpress";
 import { useWordpressData } from "./useWordpressData";
 import { footer as footerFallback } from "../data/siteData";
+import { chatbotDefaults } from "../data/chatbotDefaults";
 
 /** Map a known link label to an in-app route, else leave it as a plain anchor. */
 const PATHS = {
@@ -48,6 +49,7 @@ const fallback = {
     copyright: footerFallback.copyright,
     legal: footerFallback.legal.map((label) => ({ label, url: "#" })),
   },
+  chatbot: chatbotDefaults,
 };
 
 /**
@@ -59,6 +61,7 @@ export function useLayout() {
   return {
     header: data?.header ?? fallback.header,
     footer: data?.footer ?? fallback.footer,
+    chatbot: data?.chatbot ?? fallback.chatbot,
     loading,
     error,
   };

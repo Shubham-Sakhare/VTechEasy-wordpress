@@ -28,6 +28,18 @@ base, and the included `.htaccess` rewrites client-side routes to `index.html`
 so pages also work when opened or refreshed directly. It excludes `/backend/`
 so WordPress requests are not rewritten to the frontend.
 
+The build splits route pages into separate JavaScript chunks. The root
+`/sitemap.xml` URL is rewritten to a public VTech WordPress endpoint, which
+generates the sitemap from current pages, services, projects, and published
+blog articles. Deploy the updated frontend `.htaccess` and activate the updated
+VTech Core plugin for dynamic sitemap output. Set **VTech Layout → Settings →
+Frontend Origin** when the frontend uses a different domain from WordPress.
+
+Unknown routes render a not-found page and are marked `noindex`. The static
+hosting rewrite still serves the React shell, so the HTTP response status for
+an unknown route may remain 200 unless the hosting server is configured to
+return a real 404 status.
+
 For clean WordPress REST URLs, upload `Vtecheasy-Backend/.htaccess` to
 `htdocs/backend/.htaccess`, then visit **WP Admin → Settings → Permalinks** and
 save the current setting once to refresh WordPress rewrite rules. API routes
@@ -125,6 +137,32 @@ same VTech Settings screen (for example `https://www.example.com`, without a
 path). For reliable email delivery, configure SMTP for WordPress and send a
 test message from the live host. Form endpoints apply basic honeypot and
 per-IP rate limiting; production deployments should also use HTTPS.
+
+## Chat assistant
+
+The floating assistant gives rule-based answers about services, project
+timelines, pricing, apps, redesign, support, the portfolio, location, SEO, and
+privacy. It is not a generative AI and has no per-message AI API cost. Visitors
+can start a project enquiry; the assistant collects their name, project type,
+one contact method (phone or email), and requirements/timeline one question at
+a time. The chatbot asks for consent before sending the enquiry to the
+configured WordPress notification email. After a send attempt, three options
+appear whether email delivery succeeds or fails: WhatsApp opens a prefilled
+message for the visitor to review and send, Instagram opens the Tech Easy
+profile, and Contact opens the enquiry flow in the chat again. The site does
+not send WhatsApp messages automatically.
+
+The chatbot lead submission uses the `chat_assistant` mode of the WordPress
+contact endpoint. Deploy the updated `vtech-core` plugin as well as the frontend
+`dist/` files for this flow to work on the live site. The endpoint applies the
+existing per-IP submission rate limit.
+
+Edit the assistant in **WP Admin → VTech Layout → Chat Assistant**. The CMS
+supports CRUD and ordering for quick questions, FAQ answers, FAQ page links,
+post-enquiry icons and URLs, lead prompts, and fallback messages. The Contact
+action uses one exclusive behavior at a time: open the form in the chat or
+redirect to a configured URL. Chatbot content is served with the public
+`/vtech/v1/layout` response.
 
 ## Images
 
