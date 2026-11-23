@@ -31,6 +31,15 @@ function tea_chat_register_routes() {
 			'permission_callback' => '__return_true',
 		)
 	);
+	register_rest_route(
+		'techeasy-chat/v1',
+		'/flow',
+		array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => 'tea_chat_rest_flow',
+			'permission_callback' => '__return_true',
+		)
+	);
 	add_filter( 'rest_pre_dispatch', 'tea_chat_check_rest_origin', 10, 3 );
 	add_filter( 'rest_pre_serve_request', 'tea_chat_send_cors_headers', 100, 4 );
 }
@@ -166,6 +175,175 @@ function tea_chat_rest_config() {
 		'actions'        => $settings['actions'],
 	);
 	return rest_ensure_response( $public );
+}
+
+/**
+ * Validate and limit a guided chat session identifier.
+ *
+ * @param mixed $value Session identifier.
+ * @return string
+ */
+function tea_chat_flow_session_id( $value ) {
+	$value = is_scalar( $value ) ? sanitize_text_field( (string) $value ) : '';
+	if ( ! preg_match( '/^[A-Za-z0-9_-]{16,128}$/', $value ) ) {
+		return '';
+	}
+	return $value;
+}
+
+/**
+ * Load the server-side guided flow state for a chat session.
+ *
+ * @param string $session_id Session identifier.
+ * @return array
+ */
+function tea_chat_get_flow_state( $session_id ) {
+	$key   = 'tea_chat_flow_' . md5( wp_salt( 'auth' ) . '|' . $session_id );
+	$state = get_transient( $key );
+	return is_array( $state ) ? $state : array( 'topic_id' => '', 'visited' => array() );
+}
+
+/**
+ * Save guided flow state for six hours.
+ *
+ * @param string $session_id Session identifier.
+ * @param array  $state Flow state.
+ * @return void
+ */
+function tea_chat_save_flow_state( $session_id, $state ) {
+	$key = 'tea_chat_flow_' . md5( wp_salt( 'auth' ) . '|' . $session_id );
+	set_transient( $key, $state, 6 * HOUR_IN_SECONDS );
+}
+
+/**
+ * Advance or reset the guided chatbot flow on the server.
+ *
+ * The server owns visited options, so returning options can never repeat an
+ * option that the visitor has already selected for the active topic.
+ *
+ * @param WP_REST_Request $request REST request.
+ * @return WP_REST_Response|WP_Error
+ */
+function tea_chat_rest_flow( $request ) {
+	$data       = $request->get_json_params();
+	$data       = is_array( $data ) ? $data : array();
+	$session_id = tea_chat_flow_session_id( isset( $data['session_id'] ) ? $data['session_id'] : '' );
+	$action     = sanitize_key( isset( $data['action'] ) ? $data['action'] : '' );
+	$topic_id   = sanitize_key( isset( $data['topic_id'] ) ? $data['topic_id'] : '' );
+	$option_id  = sanitize_key( isset( $data['option_id'] ) ? $data['option_id'] : '' );
+
+	if ( '' === $session_id ) {
+		return new WP_Error( 'tea_chat_invalid_session', 'A valid chat session is required.', array( 'status' => 400 ) );
+	}
+
+	$settings = tea_chat_get_settings();
+	$topic    = null;
+	foreach ( $settings['quick_questions'] as $item ) {
+		if ( is_array( $item ) && isset( $item['id'] ) && sanitize_key( $item['id'] ) === $topic_id ) {
+			$topic = $item;
+			break;
+		}
+	}
+	if ( ! $topic || 'guided' !== ( isset( $topic['action'] ) ? $topic['action'] : '' ) ) {
+		return new WP_Error( 'tea_chat_invalid_topic', 'Please choose a valid service.', array( 'status' => 400 ) );
+	}
+
+	$state = tea_chat_get_flow_state( $session_id );
+	if ( 'topic' === $action ) {
+		$state = array( 'topic_id' => $topic_id, 'visited' => array() );
+		tea_chat_save_flow_state( $session_id, $state );
+		$options = array();
+		foreach ( ( isset( $topic['options'] ) && is_array( $topic['options'] ) ? $topic['options'] : array() ) as $option ) {
+			if ( is_array( $option ) && ! empty( $option['id'] ) ) {
+				$options[] = array(
+					'id'     => sanitize_key( $option['id'] ),
+					'label'  => sanitize_text_field( $option['label'] ),
+					'action' => sanitize_key( isset( $option['action'] ) ? $option['action'] : 'answer' ),
+				);
+			}
+		}
+		return rest_ensure_response(
+			array(
+				'action'        => 'topic',
+				'topic_id'      => $topic_id,
+				'intro'         => sanitize_text_field( isset( $topic['intro'] ) ? $topic['intro'] : "What would you like to know about {$topic['label']}?" ),
+				'topic_label'   => sanitize_text_field( $topic['label'] ),
+				'options'       => $options,
+				'total_options' => count( $options ),
+				'visited_count' => 0,
+			)
+		);
+	}
+
+	if ( 'option' !== $action ) {
+		return new WP_Error( 'tea_chat_invalid_flow_action', 'Invalid chat flow action.', array( 'status' => 400 ) );
+	}
+	if ( $topic_id !== $state['topic_id'] ) {
+		$state = array( 'topic_id' => $topic_id, 'visited' => array() );
+	}
+
+	$option = null;
+	foreach ( ( isset( $topic['options'] ) && is_array( $topic['options'] ) ? $topic['options'] : array() ) as $item ) {
+		if ( is_array( $item ) && isset( $item['id'] ) && sanitize_key( $item['id'] ) === $option_id ) {
+			$option = $item;
+			break;
+		}
+	}
+	if ( ! $option ) {
+		return new WP_Error( 'tea_chat_invalid_option', 'Please choose a valid option.', array( 'status' => 400 ) );
+	}
+
+	if ( 'answer' === ( isset( $option['action'] ) ? $option['action'] : 'answer' ) ) {
+		$visited = array_map( 'sanitize_key', is_array( $state['visited'] ) ? $state['visited'] : array() );
+		if ( ! in_array( $option_id, $visited, true ) ) {
+			$visited[] = $option_id;
+		}
+		$state['visited'] = array_values( array_unique( $visited ) );
+		tea_chat_save_flow_state( $session_id, $state );
+	}
+
+	$remaining = array();
+	foreach ( ( isset( $topic['options'] ) && is_array( $topic['options'] ) ? $topic['options'] : array() ) as $item ) {
+		$id = sanitize_key( isset( $item['id'] ) ? $item['id'] : '' );
+		if ( '' === $id || in_array( $id, $state['visited'], true ) ) {
+			continue;
+		}
+		$remaining[] = array(
+			'id'     => $id,
+			'label'  => sanitize_text_field( $item['label'] ),
+			'action' => sanitize_key( isset( $item['action'] ) ? $item['action'] : 'answer' ),
+		);
+	}
+
+	$related = array();
+	$related_ids = is_array( isset( $option['related_ids'] ) ? $option['related_ids'] : array() )
+		? $option['related_ids']
+		: array();
+	foreach ( $related_ids as $faq_id ) {
+		foreach ( $settings['faqs'] as $faq ) {
+			if ( is_array( $faq ) && isset( $faq['id'] ) && sanitize_key( $faq['id'] ) === sanitize_key( $faq_id ) ) {
+				$related[] = array(
+					'id'       => sanitize_key( $faq['id'] ),
+					'question' => sanitize_text_field( $faq['question'] ),
+				);
+				break;
+			}
+		}
+	}
+
+	return rest_ensure_response(
+		array(
+			'action'        => 'option',
+			'topic_id'      => $topic_id,
+			'topic_label'   => sanitize_text_field( $topic['label'] ),
+			'option_action' => sanitize_key( isset( $option['action'] ) ? $option['action'] : 'answer' ),
+			'answer'        => sanitize_text_field( isset( $option['answer'] ) ? $option['answer'] : $settings['fallback'] ),
+			'related'       => $related,
+			'remaining'     => $remaining,
+			'total_options' => count( isset( $topic['options'] ) && is_array( $topic['options'] ) ? $topic['options'] : array() ),
+			'visited_count' => count( $state['visited'] ),
+		)
+	);
 }
 
 /**

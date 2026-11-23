@@ -7,6 +7,7 @@ const RAW_API_BASE = (import.meta.env.VITE_WP_API_URL || "").replace(/\/+$/, "")
 const REST_MODE = String(import.meta.env.VITE_WP_REST_MODE || "query").toLowerCase();
 const API_BASE = import.meta.env.DEV && RAW_API_BASE ? "/wp-proxy" : RAW_API_BASE;
 const STORAGE_KEY = "techeasy-guided-chat-v1";
+const FLOW_SESSION_KEY = "techeasy-guided-chat-session-v1";
 const INTERESTS = ["Price", "Services", "Timeline", "Support", "Other"];
 const EMPTY_LEAD = { service: "", name: "", email: "", mobile: "", interest: "", message: "" };
 const DEFAULT_CONFIG = {
@@ -103,6 +104,7 @@ export default function ChatWidget() {
   const scrollRef = useRef(null);
   const nextId = useRef(1);
   const replyTimer = useRef(null);
+  const flowSessionId = useRef("");
 
   useEffect(() => {
     let active = true;
@@ -177,6 +179,37 @@ export default function ChatWidget() {
     }].slice(-80));
   }
 
+  function getFlowSessionId() {
+    if (flowSessionId.current) return flowSessionId.current;
+    try {
+      flowSessionId.current = sessionStorage.getItem(FLOW_SESSION_KEY) || "";
+    } catch (error) {
+      flowSessionId.current = "";
+    }
+    if (!flowSessionId.current) {
+      flowSessionId.current = typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `tea-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+      try {
+        sessionStorage.setItem(FLOW_SESSION_KEY, flowSessionId.current);
+      } catch (error) {
+        console.warn("Chat flow session could not be saved.", error);
+      }
+    }
+    return flowSessionId.current;
+  }
+
+  async function requestFlow(payload) {
+    const response = await fetch(apiUrl("flow"), {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, session_id: getFlowSessionId() }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result?.message || "The chat flow could not be loaded.");
+    return result;
+  }
+
   function replyAfterTyping(text, feature) {
     window.clearTimeout(replyTimer.current);
     setIsTyping(true);
@@ -249,7 +282,7 @@ export default function ChatWidget() {
     setPath((current) => [...current, `Interest: ${interest}`].slice(-60));
   }
 
-  function showTopic(topic) {
+  async function showTopic(topic) {
     addMessage("user", topic.label);
     setPath((current) => [...current, topic.label].slice(-60));
     setLead((current) => ({ ...current, service: topic.label }));
@@ -261,40 +294,61 @@ export default function ChatWidget() {
       answerFaq(findFaq(topic.answer_id));
       return;
     }
-    replyAfterTyping(topic.intro || `What would you like to know about ${topic.label}?`, {
-      type: "buttons",
-      buttons: topic.options.map((option) => ({
-        label: option.label,
-        action: option.action === "contact" ? "contact" : "option",
-        optionId: option.id,
-        topicId: topic.id,
-      })),
-    });
+    setIsTyping(true);
+    try {
+      const flow = await requestFlow({ action: "topic", topic_id: topic.id });
+      replyAfterTyping(flow.intro || topic.intro || `What would you like to know about ${topic.label}?`, {
+        type: "buttons",
+        topicLabel: flow.topic_label,
+        visitedCount: flow.visited_count,
+        totalCount: flow.total_options,
+        buttons: flow.options.map((option) => ({
+          label: option.label,
+          action: option.action === "contact" ? "contact" : "option",
+          optionId: option.id,
+          topicId: topic.id,
+        })),
+      });
+    } catch (error) {
+      setIsTyping(false);
+      replyAfterTyping(error instanceof Error ? error.message : "The chat flow could not be loaded.");
+    }
   }
 
-  function showOption(topic, option) {
-    if (option.action === "contact") {
-      addMessage("user", option.label);
-      setPath((current) => [...current, option.label].slice(-60));
-      startLead(topic.label);
-      return;
-    }
+  async function showOption(topic, option) {
     addMessage("user", option.label);
     setPath((current) => [...current, option.label].slice(-60));
-    const remaining = topic.options
-      .filter((item) => item.id !== option.id)
-      .map((item) => ({
+    setIsTyping(true);
+    try {
+      const flow = await requestFlow({ action: "option", topic_id: topic.id, option_id: option.id });
+      if (flow.option_action === "contact") {
+        setIsTyping(false);
+        startLead(topic.label);
+        return;
+      }
+      const remaining = flow.remaining.map((item) => ({
         label: item.label,
         action: item.action === "contact" ? "contact" : "option",
         optionId: item.id,
         topicId: topic.id,
       }));
-    const buttons = [
-      ...relatedButtons(option.related_ids),
-      ...remaining,
-      { label: "← Back to services", action: "back" },
-    ];
-    replyAfterTyping(option.answer, { type: "answer", buttons, helpful: true });
+      const related = (flow.related || []).map((item) => ({
+        label: item.question,
+        action: "related",
+        faqId: item.id,
+      }));
+      replyAfterTyping(flow.answer, {
+        type: "guided-answer",
+        topicLabel: flow.topic_label,
+        visitedCount: flow.visited_count,
+        totalCount: flow.total_options,
+        buttons: [...related, ...remaining, { label: "← Back to services", action: "back" }],
+        helpful: true,
+      });
+    } catch (error) {
+      setIsTyping(false);
+      replyAfterTyping(error instanceof Error ? error.message : "The chat flow could not be loaded.");
+    }
   }
 
   function matchFaq(text) {
@@ -449,6 +503,8 @@ export default function ChatWidget() {
     setQuestion("");
     setIsTyping(false);
     sessionStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(FLOW_SESSION_KEY);
+    flowSessionId.current = "";
   }
 
   const positionClass = config.position === "left" ? "left-5 items-start" : "right-5 items-end";
@@ -487,15 +543,33 @@ export default function ChatWidget() {
                 }`}>
                   <p className="whitespace-pre-wrap">{message.text}</p>
                   {message.link && <MessageLink link={message.link} onNavigate={() => setIsOpen(false)} />}
+                  {message.feature?.topicLabel && (
+                    <div className="mt-3">
+                      <div className="mb-1 flex items-center justify-between text-[10px] text-white/55">
+                        <span>{message.feature.topicLabel}</span>
+                        {typeof message.feature.visitedCount === "number" && typeof message.feature.totalCount === "number" && (
+                          <span>{message.feature.visitedCount}/{message.feature.totalCount} viewed</span>
+                        )}
+                      </div>
+                      {typeof message.feature.visitedCount === "number" && typeof message.feature.totalCount === "number" && (
+                        <div className="h-1 overflow-hidden rounded-full bg-white/10">
+                          <div
+                            className="h-full rounded-full bg-cyan-300 transition-all"
+                            style={{ width: `${message.feature.totalCount ? (message.feature.visitedCount / message.feature.totalCount) * 100 : 0}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {message.feature?.buttons?.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {message.feature.buttons.map((button, index) => (
                         <button
                           key={`${button.action}-${button.label}-${index}`}
                           type="button"
                           disabled={isTyping || isSending}
                           onClick={() => runButton(button, message.id)}
-                          className="rounded-full border border-white/15 px-3 py-1.5 text-left text-xs text-white/90 transition hover:border-cyan-300/70 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-xl border border-white/15 px-3 py-2.5 text-left text-xs leading-snug text-white/90 transition hover:-translate-y-px hover:border-cyan-300/70 hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {button.label}
                         </button>
